@@ -21,6 +21,7 @@ public class PlayerController : MonoBehaviour
     private Animator animator;
     private bool isGrounded;
     private bool isJumping;
+    private bool recentlyLanded;
     private Vector3 verticalVelocity;
 
     private bool isAttacking;
@@ -87,7 +88,16 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("isFalling", !isGrounded && verticalVelocity.y < 0f);
 
         // Set the "isJumping" parameter in the animator
-        animator.SetBool("isJumping", isJumping);
+        if (!isGrounded && verticalVelocity.y <= 0f)
+        {
+            // Disable "isJumping" when falling downwards
+            animator.SetBool("isJumping", false);
+            isJumping = false; // Set isJumping to false when the character is not jumping
+        }
+        else
+        {
+            animator.SetBool("isJumping", !isGrounded);
+        }
 
         // Set the "isGround" parameter in the animator
         animator.SetBool("isGround", isGrounded);
@@ -98,6 +108,7 @@ public class PlayerController : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.Space))
             {
                 Jump();
+                recentlyLanded = false; // Reset recentlyLanded when the character jumps
             }
         }
 
@@ -132,13 +143,5 @@ public class PlayerController : MonoBehaviour
         // Set the vertical velocity to the jump velocity
         verticalVelocity.y = jumpVelocity;
         isJumping = true; // Set isJumping to true when jumping
-
-        // Reset isJumping to false after a short delay (adjust the delay as needed)
-        Invoke("ResetIsJumping", 0.1f);
-    }
-
-    private void ResetIsJumping()
-    {
-        isJumping = false;
     }
 }
