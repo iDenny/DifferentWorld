@@ -84,7 +84,7 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("isRunning", Input.GetKey(KeyCode.LeftShift));
 
         // Set the "isFalling" parameter in the animator based on vertical velocity
-        animator.SetBool("isFalling", !isGrounded && verticalVelocity.y < -0.1f); // Adjust the threshold here
+        animator.SetBool("isFalling", !isGrounded && !isJumping && verticalVelocity.y < -0.5f); // Adjust the threshold here
 
         // Set the "isJumping" parameter in the animator
         animator.SetBool("isJumping", isJumping);
