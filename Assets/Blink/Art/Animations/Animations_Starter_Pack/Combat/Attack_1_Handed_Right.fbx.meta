@@ -8,7 +8,7 @@ ModelImporter:
     second: tpose
   - first:
       74: -8731992131643994696
-    second: OneHanded_Left_Attack
+    second: OneHanded_Right_Attack
   externalObjects: {}
   materials:
     materialImportMode: 1
@@ -68,7 +68,7 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: OneHanded_Left_Attack
+      name: OneHanded_Right_Attack
       takeName: hum_male_meleeattack_1H_Weapon_01
       internalID: 0
       firstFrame: 2
