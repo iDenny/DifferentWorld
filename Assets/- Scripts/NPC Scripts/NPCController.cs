@@ -3,15 +3,17 @@ using UnityEngine.AI;
 
 public class NPCController : MonoBehaviour
 {
-    public float walkSpeed = .5f;
-    public float runSpeed = 1.0f;
+    public float walkSpeed = 2.0f;
     public float followRadius = 5.0f;
+    public float stopDistance = 1.0f; // Distance to stop near the player
 
     private Transform player;
     private NavMeshAgent navMeshAgent;
     private Animator animator;
 
-    private bool isFollowing;
+    private static readonly int IsFollowing = Animator.StringToHash("isFollowing");
+    private static readonly int Speed = Animator.StringToHash("speed");
+    private static readonly int Angle = Animator.StringToHash("angle");
 
     void Awake()
     {
@@ -23,33 +25,33 @@ public class NPCController : MonoBehaviour
     void Update()
     {
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-
-        if (distanceToPlayer < followRadius)
-        {
-            isFollowing = true;
-        }
-        else
-        {
-            isFollowing = false;
-        }
+        bool isFollowing = distanceToPlayer < followRadius;
 
         if (isFollowing && navMeshAgent != null && navMeshAgent.enabled)
         {
-            navMeshAgent.speed = runSpeed;
+            navMeshAgent.speed = walkSpeed;
             navMeshAgent.SetDestination(player.position);
+
+            // Check if the NPC is within the stop distance
+            if (distanceToPlayer < stopDistance)
+            {
+                navMeshAgent.velocity = Vector3.zero; // Stop the NPC's movement
+            }
         }
         else
         {
-            navMeshAgent.speed = walkSpeed;
+            navMeshAgent.speed = 0f; // Stop the NPC when not following
         }
 
         // Set blend tree parameters based on NPC state
-        animator.SetBool("isFollowing", isFollowing);
-        animator.SetFloat("speed", navMeshAgent.velocity.magnitude);
+        animator.SetBool(IsFollowing, isFollowing);
+
+        // Set speed parameter based on navMeshAgent's velocity
+        animator.SetFloat(Speed, navMeshAgent.velocity.magnitude);
 
         // Additional blend tree parameters for directional walking
         float angle = CalculateAngleToPlayer();
-        animator.SetFloat("angle", angle);
+        animator.SetFloat(Angle, angle);
     }
 
     float CalculateAngleToPlayer()
