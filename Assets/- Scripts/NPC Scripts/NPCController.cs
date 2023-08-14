@@ -3,9 +3,9 @@ using UnityEngine.AI;
 
 public class NPCController : MonoBehaviour
 {
-    public float walkSpeed = 2.0f;
+    public float walkSpeed = 1.0f;
     public float followRadius = 5.0f;
-    public float stopDistance = 1.0f; // Distance to stop near the player
+    public float stopDistance = 1.5f; // Distance to stop near the player
 
     private Transform player;
     private NavMeshAgent navMeshAgent;
