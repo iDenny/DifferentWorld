@@ -44,6 +44,13 @@ public class Character : MonoBehaviour
     [Tooltip("Family name of the character.  Updated when the character is added to a Family.")]
     public string FamilyName = string.Empty;
 
+    /// <summary>
+    /// Needs list for this character (hunger, rest, etc.).  Systems can
+    /// modify or read these values.  This is a simple in-object need
+    /// list; you can move it to a dedicated NeedSystem later.
+    /// </summary>
+    public List<Need> Needs = new List<Need>();
+
     // Cached references to other systems on the same GameObject.
     private BeliefSystem beliefSystem;
     private NemesisSystem nemesisSystem;
@@ -54,6 +61,12 @@ public class Character : MonoBehaviour
         // the top of the class, so they will always be present.
         beliefSystem = GetComponent<BeliefSystem>();
         nemesisSystem = GetComponent<NemesisSystem>();
+
+        // Ensure basic needs exist so other systems can call FulfillNeed.
+        EnsureNeedExists(NeedType.Hunger, 1f, 0.01f);
+        EnsureNeedExists(NeedType.Rest, 1f, 0.01f);
+        EnsureNeedExists(NeedType.Social, 1f, 0.005f);
+        EnsureNeedExists(NeedType.Recreation, 1f, 0.002f);
     }
 
     /// <summary>
@@ -81,7 +94,7 @@ public class Character : MonoBehaviour
         if (other == null || other == this) return;
         // If the other character is already a nemesis, decrease mood and
         // increase hostility.
-        if (nemesisSystem.IsNemesis(other))
+        if (nemesisSystem != null && nemesisSystem.IsNemesis(other))
         {
             // Interaction with a nemesis tends to be unpleasant
             ModifyMood(-0.1f);
@@ -93,7 +106,7 @@ public class Character : MonoBehaviour
             ModifyMood(0.1f);
             // Gradually forgive the other character if they were once a
             // nemesis.  This call has no effect if other isn't a nemesis.
-            nemesisSystem.ReduceHostility(other, 0.05f);
+            nemesisSystem?.ReduceHostility(other, 0.05f);
         }
     }
 
@@ -103,7 +116,7 @@ public class Character : MonoBehaviour
     /// </summary>
     public void AddNemesis(Character other, float hostility = 0.5f)
     {
-        nemesisSystem.AddNemesis(other, hostility);
+        nemesisSystem?.AddNemesis(other, hostility);
     }
 
     /// <summary>
@@ -112,6 +125,31 @@ public class Character : MonoBehaviour
     /// </summary>
     public IReadOnlyDictionary<Character, float> GetNemeses()
     {
-        return nemesisSystem.Nemeses;
+        return nemesisSystem != null ? nemesisSystem.Nemeses : new Dictionary<Character, float>();
+    }
+
+    /// <summary>
+    /// Fulfill a need by type.  If the need does not exist it will be created
+    /// with sensible defaults and then fulfilled.
+    /// </summary>
+    public void FulfillNeed(NeedType type, float amount)
+    {
+        var need = Needs.Find(n => n.Type == type);
+        if (need == null)
+        {
+            need = EnsureNeedExists(type, 1f, 0.01f);
+        }
+        need.Fulfill(amount);
+    }
+
+    private Need EnsureNeedExists(NeedType type, float maxValue, float decayRate)
+    {
+        var need = Needs.Find(n => n.Type == type);
+        if (need == null)
+        {
+            need = new Need(type, maxValue, decayRate);
+            Needs.Add(need);
+        }
+        return need;
     }
 }
