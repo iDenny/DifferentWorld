@@ -18,21 +18,21 @@ public class ColonySystem : MonoBehaviour
     /// manually or through recruitment events.  Attach <see cref="NPCController"/>
     /// and other systems to each citizen for full behaviour.
     /// </summary>
-    public List<Character> Citizens = new();
+    public List<Character> Citizens = new List<Character>();
 
     /// <summary>
     /// Families present in the colony.  Families group characters and
     /// maintain lineage.  Use <see cref="Family.AddMember"/> to assign
     /// characters to families.
     /// </summary>
-    public List<Family> Families = new();
+    public List<Family> Families = new List<Family>();
 
     /// <summary>
     /// Simple resource ledger.  Keys are resource names (e.g. wood, stone,
     /// food), values are amounts.  Expand this into a proper economy as
     /// needed.
     /// </summary>
-    public Dictionary<string, int> Resources = new();
+    public Dictionary<string, int> Resources = new Dictionary<string, int>();
 
     /// <summary>
     /// Current settlement tier: 0=village, 1=town, 2=city, 3=nation, 4=federation.

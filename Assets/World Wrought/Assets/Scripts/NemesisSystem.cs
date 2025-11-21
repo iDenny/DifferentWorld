@@ -16,7 +16,7 @@ public class NemesisSystem : MonoBehaviour
     /// nemesis will attack on sight or harbour resentment.  See also
     /// <see cref="Profiles"/> for extended information.
     /// </summary>
-    public Dictionary<Character, float> Nemeses { get; private set; } = new();
+    public Dictionary<Character, float> Nemeses { get; private set; } = new Dictionary<Character, float>();
 
     /// <summary>
     /// Detailed profiles for each nemesis.  Profiles store rank, traits,
@@ -25,7 +25,7 @@ public class NemesisSystem : MonoBehaviour
     /// Middle‑earth: Shadow of War.  Profiles are created when a
     /// nemesis is first added.
     /// </summary>
-    public Dictionary<Character, NemesisProfile> Profiles { get; private set; } = new();
+    public Dictionary<Character, NemesisProfile> Profiles { get; private set; } = new Dictionary<Character, NemesisProfile>();
 
     /// <summary>
     /// Adds a character as a nemesis or increases hostility if already a

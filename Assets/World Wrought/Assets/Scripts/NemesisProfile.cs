@@ -12,11 +12,11 @@ public class NemesisProfile
 {
     public string Name;
     public int Rank;
-    public List<string> Traits = new();
-    public List<string> Strengths = new();
-    public List<string> Weaknesses = new();
+    public List<string> Traits = new List<string>();
+    public List<string> Strengths = new List<string>();
+    public List<string> Weaknesses = new List<string>();
     public string Personality;
-    public List<string> History = new();
+    public List<string> History = new List<string>();
 
     public NemesisProfile(string name, int rank = 0)
     {

@@ -20,7 +20,7 @@ public class NPCController : MonoBehaviour
     /// celebrate → sleep.  You can modify this list at runtime to assign
     /// different professions or respond to world events.
     /// </summary>
-    public List<NPCJobType> Schedule = new()
+    public List<NPCJobType> Schedule = new List<NPCJobType>
     {
         NPCJobType.Sleep,
         NPCJobType.Eat,
@@ -35,7 +35,7 @@ public class NPCController : MonoBehaviour
     /// entry in the schedule.  If the number of durations does not match
     /// the number of schedule entries, durations will be recycled.
     /// </summary>
-    public List<float> JobDurations = new() { 6f, 2f, 8f, 2f, 4f, 2f };
+    public List<float> JobDurations = new List<float> { 6f, 2f, 8f, 2f, 4f, 2f };
 
     /// <summary>
     /// Index of the current job in the schedule.

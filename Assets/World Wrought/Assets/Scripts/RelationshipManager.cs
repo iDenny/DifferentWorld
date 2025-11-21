@@ -16,7 +16,7 @@ public class RelationshipManager : MonoBehaviour
     /// Relationships with other characters.  The float value ranges from
     /// -1 (enemies) to 1 (allies).  Neutral relationships default to 0.
     /// </summary>
-    private readonly Dictionary<Character, float> relationships = new();
+    private readonly Dictionary<Character, float> relationships = new Dictionary<Character, float>();
 
     private void Awake()
     {
