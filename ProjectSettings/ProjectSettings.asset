@@ -908,11 +908,11 @@ PlayerSettings:
     m_VersionName: 
   apiCompatibilityLevel: 6
   activeInputHandler: 0
-  cloudProjectId: 
+  cloudProjectId: 68ae1f0b-ed44-45b6-85d5-797252bd1cdd
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: 
-  organizationId: 
+  projectName: FirstUnityGame
+  organizationId: idenny
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
   playerDataPath: 
