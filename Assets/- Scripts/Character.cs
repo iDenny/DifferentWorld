@@ -1,64 +1,117 @@
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
 
 /// <summary>
-/// Base class for all living beings in the world. Contains needs, traits, mood and family references.
+/// Represents an individual in the world.  Characters track basic data
+/// such as a name, family affiliation, mood and age.  Additional
+/// systems like <see cref="BeliefSystem"/> and <see cref="NemesisSystem"/>
+/// attach to the same GameObject to extend behaviour.  Character also
+/// exposes methods to modify mood, interact with other characters and
+/// respond to in‑game events.
 /// </summary>
-[RequireComponent(typeof(MoodSystem))]
+[DisallowMultipleComponent]
+[RequireComponent(typeof(BeliefSystem))]
+[RequireComponent(typeof(NemesisSystem))]
 public class Character : MonoBehaviour
 {
-    public string CharacterName;
-    public string FamilyName;
+    /// <summary>
+    /// Name displayed for this character.  Useful for UI or debugging.
+    /// </summary>
+    [Tooltip("Human readable name of the character.")]
+    public string CharacterName = "Unnamed";
 
-    // List of needs this character has.
-    public List<Need> Needs = new List<Need>();
-    // Traits attached to this character.
-    public List<Trait> Traits = new List<Trait>();
+    /// <summary>
+    /// Age in years.  You can change this at runtime to age characters
+    /// dynamically or use it to gate certain behaviours.
+    /// </summary>
+    [Tooltip("Age of the character in years.")]
+    public int Age = 18;
 
-    private MoodSystem moodSystem;
+    /// <summary>
+    /// Current mood level between 0 (depressed) and 1 (ecstatic).  Mood
+    /// influences AI decisions and reactions.  This value is typically
+    /// modified through <see cref="ModifyMood"/> rather than direct edits.
+    /// </summary>
+    [Range(0f, 1f)]
+    [Tooltip("Current mood level between 0 (depressed) and 1 (ecstatic).")]
+    public float Mood = 0.5f;
 
-    void Awake()
+    /// <summary>
+    /// Name of the family this character belongs to.  Set automatically
+    /// when added to a <see cref="Family"/> via <see cref="Family.AddMember"/>
+    /// but can be overridden manually for special cases.
+    /// </summary>
+    [Tooltip("Family name of the character.  Updated when the character is added to a Family.")]
+    public string FamilyName = string.Empty;
+
+    // Cached references to other systems on the same GameObject.
+    private BeliefSystem beliefSystem;
+    private NemesisSystem nemesisSystem;
+
+    private void Awake()
     {
-        moodSystem = GetComponent<MoodSystem>();
-        moodSystem.Needs = Needs;
-
-        // Apply trait effects at creation.
-        foreach (Trait trait in Traits)
-        {
-            trait.Apply(this);
-        }
+        // Cache component references.  These are required by the attributes at
+        // the top of the class, so they will always be present.
+        beliefSystem = GetComponent<BeliefSystem>();
+        nemesisSystem = GetComponent<NemesisSystem>();
     }
 
-    void Update()
+    /// <summary>
+    /// Adjusts the character's mood by a delta, taking their primary
+    /// belief into account.  Belief modifiers can either boost or
+    /// dampen mood changes.  Resulting mood is clamped between 0 and 1.
+    /// </summary>
+    /// <param name="amount">The raw change to apply to the mood.</param>
+    public void ModifyMood(float amount)
     {
-        // Update each need; pass in deltaTime
-        float dt = Time.deltaTime;
-        foreach (Need need in Needs)
+        float modifier = beliefSystem != null ? beliefSystem.GetBeliefModifier() : 0f;
+        Mood = Mathf.Clamp01(Mood + amount + modifier);
+    }
+
+    /// <summary>
+    /// Interacts with another character.  This simple example adjusts
+    /// mood based on whether the other character is a nemesis and
+    /// creates or reduces hostility accordingly.  Real games can
+    /// expand this to include dialogues, trades, combat or other
+    /// mechanics.
+    /// </summary>
+    /// <param name="other">The character to interact with.</param>
+    public void Interact(Character other)
+    {
+        if (other == null || other == this) return;
+        // If the other character is already a nemesis, decrease mood and
+        // increase hostility.
+        if (nemesisSystem.IsNemesis(other))
         {
-            need.Update(dt);
+            // Interaction with a nemesis tends to be unpleasant
+            ModifyMood(-0.1f);
+            nemesisSystem.AddNemesis(other, 0.1f);
+        }
+        else
+        {
+            // Positive interactions improve mood and may reduce hostility
+            ModifyMood(0.1f);
+            // Gradually forgive the other character if they were once a
+            // nemesis.  This call has no effect if other isn't a nemesis.
+            nemesisSystem.ReduceHostility(other, 0.05f);
         }
     }
 
     /// <summary>
-    /// Fulfill a specific need by name.
+    /// Public helper to add a nemesis directly.  Use this when an
+    /// event causes the character to harbour a grudge against someone.
     /// </summary>
-    public void FulfillNeed(NeedType type, float amount)
+    public void AddNemesis(Character other, float hostility = 0.5f)
     {
-        foreach (Need need in Needs)
-        {
-            if (need.Type == type)
-            {
-                need.Fulfill(amount);
-                break;
-            }
-        }
+        nemesisSystem.AddNemesis(other, hostility);
     }
 
     /// <summary>
-    /// Get the current mood (normalized 0–1) from the mood system.
+    /// Returns a collection of this character's nemeses and their
+    /// hostility values.  Provides a read‑only view to external callers.
     /// </summary>
-    public float GetMood()
+    public IReadOnlyDictionary<Character, float> GetNemeses()
     {
-        return moodSystem.Mood;
+        return nemesisSystem.Nemeses;
     }
 }
