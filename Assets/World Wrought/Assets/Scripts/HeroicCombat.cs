@@ -1,14 +1,14 @@
 using UnityEngine;
 
 /// <summary>
-/// Provides basic combat functionality inspired by Warhammer 40K's
-/// Space Marines.  Characters with this component can perform heavy
-/// melee attacks with chainswords or hammers and fire ranged weapons like
-/// bolters or plasma rifles.  This is a highly simplified combat model
-/// intended as a starting point for more elaborate systems.
+/// Provides basic combat functionality without referencing any existing
+/// franchises.  Characters with this component can perform heavy melee
+/// attacks with swords, hammers or other close‑range weapons and fire
+/// simple ranged attacks.  This is a lightweight combat model intended
+/// as a starting point for your own unique game mechanics.
 /// </summary>
 [RequireComponent(typeof(Character))]
-public class SpaceMarineCombat : MonoBehaviour
+public class HeroicCombat : MonoBehaviour
 {
     /// <summary>
     /// Hit points for the character.  When this reaches zero the
@@ -37,7 +37,7 @@ public class SpaceMarineCombat : MonoBehaviour
     public void MeleeAttack(GameObject target)
     {
         if (target == null) return;
-        var combat = target.GetComponent<SpaceMarineCombat>();
+        var combat = target.GetComponent<HeroicCombat>();
         if (combat != null)
         {
             combat.TakeDamage(MeleeDamage);
@@ -52,7 +52,7 @@ public class SpaceMarineCombat : MonoBehaviour
     public void Shoot(GameObject target)
     {
         if (target == null) return;
-        var combat = target.GetComponent<SpaceMarineCombat>();
+        var combat = target.GetComponent<HeroicCombat>();
         if (combat != null)
         {
             combat.TakeDamage(RangedDamage);
