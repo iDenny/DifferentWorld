@@ -19,11 +19,14 @@ public class PlayerControl : MonoBehaviour
 
     private CharacterController controller;
     private HeroicCombat combat;
+    private Animator animator;
 
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
         combat = GetComponent<HeroicCombat>();
+        // Attempt to fetch an Animator to drive movement and attack animations.
+        animator = GetComponent<Animator>();
         // Lock cursor for a first‑person or third‑person view.  Remove this
         // line if you don't need mouse look.
         Cursor.lockState = CursorLockMode.Locked;
@@ -43,10 +46,24 @@ public class PlayerControl : MonoBehaviour
             Vector3 camRight = Camera.main.transform.right;
             camRight.y = 0f;
             Vector3 moveDir = (camForward.normalized * vert + camRight.normalized * horiz).normalized;
-            controller.SimpleMove(moveDir * MoveSpeed);
+            // Use Move instead of SimpleMove to control movement explicitly and avoid slide lag
+            controller.Move(moveDir * MoveSpeed * Time.deltaTime);
             // Smoothly rotate towards movement direction
             Quaternion targetRot = Quaternion.LookRotation(moveDir);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, TurnSpeed * Time.deltaTime);
+            // Update animator with movement speed
+            if (animator != null)
+            {
+                animator.SetFloat("Speed", moveDir.magnitude);
+            }
+        }
+        else
+        {
+            // When not moving, ensure animator speed parameter is zero
+            if (animator != null)
+            {
+                animator.SetFloat("Speed", 0f);
+            }
         }
 
         // Handle attacks
@@ -55,17 +72,25 @@ public class PlayerControl : MonoBehaviour
             // Left mouse button: melee attack forward
             var target = GetAttackTarget();
             combat.MeleeAttack(target);
+            if (animator != null)
+            {
+                animator.SetTrigger("MeleeAttack");
+            }
         }
         if (Input.GetMouseButtonDown(1))
         {
             // Right mouse button: ranged attack forward
             var target = GetAttackTarget();
             combat.Shoot(target);
+            if (animator != null)
+            {
+                animator.SetTrigger("Shoot");
+            }
         }
     }
 
     /// <summary>
-    /// Casts a ray forward to find a target with a SpaceMarineCombat
+    /// Casts a ray forward to find a target with a HeroicCombat
     /// component.  Returns the GameObject if found, otherwise null.
     /// </summary>
     private GameObject GetAttackTarget()

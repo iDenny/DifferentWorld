@@ -23,6 +23,21 @@ public class SimpleNPCMovement : MonoBehaviour
     public List<Transform> Destinations = new List<Transform>();
 
     /// <summary>
+    /// If true, the NPC will ignore the Destinations list and instead
+    /// wander by picking random points on the navmesh within a certain
+    /// radius.  This allows NPCs to move autonomously without needing
+    /// predefined waypoints.  Set this to false if you prefer to use
+    /// specific waypoints.
+    /// </summary>
+    public bool UseRandomWander = false;
+
+    /// <summary>
+    /// The maximum distance from the NPC's current position when choosing a
+    /// new random destination.  Larger values result in broader wandering.
+    /// </summary>
+    public float WanderRadius = 10f;
+
+    /// <summary>
     /// Distance within which the agent is considered to have reached its
     /// destination.  When the agent is closer than this threshold, a new
     /// destination will be selected.
@@ -58,11 +73,35 @@ public class SimpleNPCMovement : MonoBehaviour
     /// </summary>
     public void PickNewDestination()
     {
-        if (Destinations == null || Destinations.Count == 0) return;
-        Transform target = Destinations[Random.Range(0, Destinations.Count)];
-        if (target != null)
+        Vector3 newPos;
+        if (UseRandomWander || Destinations == null || Destinations.Count == 0)
         {
-            agent.SetDestination(target.position);
+            // Choose a random point on the navmesh within the wander radius.
+            newPos = RandomNavmeshLocation(WanderRadius);
         }
+        else
+        {
+            Transform target = Destinations[Random.Range(0, Destinations.Count)];
+            newPos = target != null ? target.position : transform.position;
+        }
+        agent.SetDestination(newPos);
+    }
+
+    /// <summary>
+    /// Samples a random position on the NavMesh within a specified radius.
+    /// This helper method uses NavMesh.SamplePosition to ensure the
+    /// resulting point is valid for the agent to travel to.
+    /// </summary>
+    private Vector3 RandomNavmeshLocation(float radius)
+    {
+        Vector3 randomDirection = Random.insideUnitSphere * radius;
+        randomDirection += transform.position;
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(randomDirection, out hit, radius, NavMesh.AllAreas))
+        {
+            return hit.position;
+        }
+        // If sampling fails, fall back to current position.
+        return transform.position;
     }
 }
