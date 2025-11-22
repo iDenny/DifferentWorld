@@ -21,6 +21,21 @@ public class PlayerControl : MonoBehaviour
     private HeroicCombat combat;
     private Animator animator;
 
+    // Animator parameter names for movement and attack.  These default
+    // values correspond to your existing Animator.  You can change them in
+    // the Inspector if your parameter names differ.
+    [Header("Animator Parameter Names")]
+    public string HorizontalParam = "Velocity X";
+    public string VerticalParam = "Velocity Y";
+    public string AttackBoolParam = "isAttacking";
+    /// <summary>
+    /// Duration in seconds to keep the attack bool set to true after an
+    /// attack input.  The Animator will transition back once this
+    /// duration expires.  Adjust this to match the length of your attack
+    /// animation.
+    /// </summary>
+    public float AttackAnimDuration = 0.5f;
+
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
@@ -54,7 +69,9 @@ public class PlayerControl : MonoBehaviour
             // Update animator with movement speed
             if (animator != null)
             {
-                animator.SetFloat("Speed", moveDir.magnitude);
+                // Pass raw input values directly into the blend tree
+                animator.SetFloat(HorizontalParam, horiz);
+                animator.SetFloat(VerticalParam, vert);
             }
         }
         else
@@ -62,7 +79,8 @@ public class PlayerControl : MonoBehaviour
             // When not moving, ensure animator speed parameter is zero
             if (animator != null)
             {
-                animator.SetFloat("Speed", 0f);
+                animator.SetFloat(HorizontalParam, 0f);
+                animator.SetFloat(VerticalParam, 0f);
             }
         }
 
@@ -74,7 +92,10 @@ public class PlayerControl : MonoBehaviour
             combat.MeleeAttack(target);
             if (animator != null)
             {
-                animator.SetTrigger("MeleeAttack");
+                // Trigger attack animation by setting a bool; reset after a delay
+                animator.SetBool(AttackBoolParam, true);
+                CancelInvoke(nameof(ResetAttackFlag));
+                Invoke(nameof(ResetAttackFlag), AttackAnimDuration);
             }
         }
         if (Input.GetMouseButtonDown(1))
@@ -84,8 +105,22 @@ public class PlayerControl : MonoBehaviour
             combat.Shoot(target);
             if (animator != null)
             {
-                animator.SetTrigger("Shoot");
+                animator.SetBool(AttackBoolParam, true);
+                CancelInvoke(nameof(ResetAttackFlag));
+                Invoke(nameof(ResetAttackFlag), AttackAnimDuration);
             }
+        }
+    }
+
+    /// <summary>
+    /// Resets the attack flag used to trigger attack animations.  Called
+    /// automatically via Invoke after AttackAnimDuration.
+    /// </summary>
+    private void ResetAttackFlag()
+    {
+        if (animator != null)
+        {
+            animator.SetBool(AttackBoolParam, false);
         }
     }
 
