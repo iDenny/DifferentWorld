@@ -57,8 +57,12 @@ public class SimpleNPCMovement : MonoBehaviour
 
     private void Update()
     {
-        // If we don't have any destinations configured, do nothing.
-        if (Destinations == null || Destinations.Count == 0) return;
+        // If not using random wander and no destinations are provided, there is
+        // nowhere to go.
+        if (!UseRandomWander && (Destinations == null || Destinations.Count == 0))
+        {
+            return;
+        }
         // Check if we've reached the current destination; if so, pick another.
         if (!agent.pathPending && agent.remainingDistance <= ArrivalThreshold)
         {
