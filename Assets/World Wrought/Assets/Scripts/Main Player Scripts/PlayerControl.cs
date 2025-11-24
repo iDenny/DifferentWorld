@@ -17,24 +17,38 @@ public class PlayerControl : MonoBehaviour
     public float MoveSpeed = 5f;
     public float TurnSpeed = 720f;
 
+        /// <summary>
+        /// Multiplier applied to the base MoveSpeed when the run key (Left
+        /// Shift) is held.  Set to 1 to disable running.
+        /// </summary>
+        public float RunMultiplier = 2f;
+
+        /// <summary>
+        /// Upward force applied when jumping.  Combine with Gravity to
+        /// control jump height.
+        /// </summary>
+        public float JumpForce = 5f;
+
+        /// <summary>
+        /// Gravity applied to the player.  Increase this value to make the
+        /// player fall faster.
+        /// </summary>
+        public float Gravity = 9.81f;
+
     private CharacterController controller;
     private HeroicCombat combat;
     private Animator animator;
 
-    // Animator parameter names for movement and attack.  These default
-    // values correspond to your existing Animator.  You can change them in
-    // the Inspector if your parameter names differ.
-    [Header("Animator Parameter Names")]
-    public string HorizontalParam = "Velocity X";
-    public string VerticalParam = "Velocity Y";
-    public string AttackBoolParam = "isAttacking";
-    /// <summary>
-    /// Duration in seconds to keep the attack bool set to true after an
-    /// attack input.  The Animator will transition back once this
-    /// duration expires.  Adjust this to match the length of your attack
-    /// animation.
-    /// </summary>
-    public float AttackAnimDuration = 0.5f;
+        // Vertical velocity for jumping and gravity.
+        private Vector3 velocity;
+
+    // Animator parameter names for movement and attack.  These are
+    // constants and will not appear in the Inspector, so your Player
+    // Control component remains clean.  Modify these strings here if you
+    // change the parameter names in your Animator controller.
+    private const string HorizontalParam = "Velocity X";
+    private const string VerticalParam = "Velocity Y";
+    private const string AttackTriggerParam = "Attack";
 
     private void Awake()
     {
@@ -61,8 +75,13 @@ public class PlayerControl : MonoBehaviour
             Vector3 camRight = Camera.main.transform.right;
             camRight.y = 0f;
             Vector3 moveDir = (camForward.normalized * vert + camRight.normalized * horiz).normalized;
-            // Use Move instead of SimpleMove to control movement explicitly and avoid slide lag
-            controller.Move(moveDir * MoveSpeed * Time.deltaTime);
+            // Determine if running
+            bool isRunning = Input.GetKey(KeyCode.LeftShift);
+            float speed = MoveSpeed * (isRunning ? RunMultiplier : 1f);
+            // Build the movement vector including vertical velocity
+            Vector3 motion = moveDir * speed;
+            // Apply horizontal motion
+            controller.Move(new Vector3(motion.x, 0f, motion.z) * Time.deltaTime);
             // Smoothly rotate towards movement direction
             Quaternion targetRot = Quaternion.LookRotation(moveDir);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, TurnSpeed * Time.deltaTime);
@@ -84,6 +103,21 @@ public class PlayerControl : MonoBehaviour
             }
         }
 
+        // Apply gravity and jumping
+        if (controller.isGrounded && velocity.y < 0f)
+        {
+            velocity.y = -2f; // small negative value to keep grounded
+        }
+        if (Input.GetButtonDown("Jump") && controller.isGrounded)
+        {
+            // Apply jump force (using basic kinematic equation)
+            velocity.y = Mathf.Sqrt(JumpForce * 2f * Gravity);
+        }
+        // Apply gravity to vertical velocity
+        velocity.y -= Gravity * Time.deltaTime;
+        // Move vertically
+        controller.Move(new Vector3(0f, velocity.y, 0f) * Time.deltaTime);
+
         // Handle attacks
         if (Input.GetMouseButtonDown(0))
         {
@@ -92,10 +126,7 @@ public class PlayerControl : MonoBehaviour
             combat.MeleeAttack(target);
             if (animator != null)
             {
-                // Trigger attack animation by setting a bool; reset after a delay
-                animator.SetBool(AttackBoolParam, true);
-                CancelInvoke(nameof(ResetAttackFlag));
-                Invoke(nameof(ResetAttackFlag), AttackAnimDuration);
+                animator.SetTrigger(AttackTriggerParam);
             }
         }
         if (Input.GetMouseButtonDown(1))
@@ -105,24 +136,14 @@ public class PlayerControl : MonoBehaviour
             combat.Shoot(target);
             if (animator != null)
             {
-                animator.SetBool(AttackBoolParam, true);
-                CancelInvoke(nameof(ResetAttackFlag));
-                Invoke(nameof(ResetAttackFlag), AttackAnimDuration);
+                animator.SetTrigger(AttackTriggerParam);
             }
         }
     }
 
-    /// <summary>
-    /// Resets the attack flag used to trigger attack animations.  Called
-    /// automatically via Invoke after AttackAnimDuration.
-    /// </summary>
-    private void ResetAttackFlag()
-    {
-        if (animator != null)
-        {
-            animator.SetBool(AttackBoolParam, false);
-        }
-    }
+    // Attack flag reset is no longer required because we use an animation
+    // trigger.  The animator will automatically transition back when the
+    // attack animation finishes.
 
     /// <summary>
     /// Casts a ray forward to find a target with a HeroicCombat
