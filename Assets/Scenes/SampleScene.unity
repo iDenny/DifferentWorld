@@ -290,6 +290,7 @@ MeshCollider:
   m_CookingOptions: 30
   m_Mesh: {fileID: 0}
 <<<<<<< HEAD
+<<<<<<< HEAD
 --- !u!114 &117716936
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -402,6 +403,8 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 815773121}
   m_SourcePrefab: {fileID: 100100000, guid: 3e2d7c4478034e04598a25ba86c9ef22, type: 3}
+=======
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 =======
 >>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 --- !u!1 &158478882 stripped
@@ -849,6 +852,7 @@ MeshCollider:
   m_CookingOptions: 30
   m_Mesh: {fileID: 0}
 <<<<<<< HEAD
+<<<<<<< HEAD
 --- !u!114 &306887589
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -874,11 +878,16 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 2708703444205104527, guid: 532cac50af3d5c949aa4a5d045f5a94e, type: 3}
   m_PrefabInstance: {fileID: 9059972204061580670}
 =======
+=======
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 --- !u!1 &315622474
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
+<<<<<<< HEAD
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
+=======
 >>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
@@ -3147,6 +3156,7 @@ MonoBehaviour:
   edgeDistance: 0.5
   waypoints: []
 <<<<<<< HEAD
+<<<<<<< HEAD
 --- !u!114 &600338247
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3253,6 +3263,8 @@ MonoBehaviour:
   m_IgnoreFromBuild: 0
   m_ApplyToChildren: 1
   m_AffectedAgents: ffffffff
+=======
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 =======
 >>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 --- !u!1 &627115277 stripped
@@ -3975,6 +3987,7 @@ MeshCollider:
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300004, guid: 784b4593ae6c56942a99223a33dcc169, type: 3}
 <<<<<<< HEAD
+<<<<<<< HEAD
 --- !u!114 &765583503
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4101,6 +4114,8 @@ MonoBehaviour:
   edgeIterations: 4
   edgeDistance: 0.5
   waypoints: []
+=======
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 =======
 >>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 --- !u!1 &818169806 stripped
@@ -5510,6 +5525,7 @@ Transform:
   m_PrefabInstance: {fileID: 481091731}
   m_PrefabAsset: {fileID: 0}
 <<<<<<< HEAD
+<<<<<<< HEAD
 --- !u!114 &1162475339
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5551,11 +5567,16 @@ MonoBehaviour:
   m_ApplyToChildren: 1
   m_AffectedAgents: ffffffff
 =======
+=======
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 --- !u!4 &1166973619 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400082, guid: abfe6fc5a9b390a488839c1fc3b58dcd, type: 3}
   m_PrefabInstance: {fileID: 1536135304}
   m_PrefabAsset: {fileID: 0}
+<<<<<<< HEAD
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
+=======
 >>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 --- !u!1 &1168253964
 GameObject:
@@ -5615,6 +5636,7 @@ MeshCollider:
   m_CookingOptions: 30
   m_Mesh: {fileID: 0}
 <<<<<<< HEAD
+<<<<<<< HEAD
 --- !u!114 &1170346305
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5640,6 +5662,8 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 2708703444205104527, guid: 532cac50af3d5c949aa4a5d045f5a94e, type: 3}
   m_PrefabInstance: {fileID: 1904252490}
   m_PrefabAsset: {fileID: 0}
+=======
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 =======
 >>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 --- !u!1 &1212239286 stripped
@@ -5670,8 +5694,13 @@ MeshCollider:
   m_CookingOptions: 30
   m_Mesh: {fileID: 0}
 <<<<<<< HEAD
+<<<<<<< HEAD
 --- !u!114 &1218266497
 MonoBehaviour:
+=======
+--- !u!1 &1215198854
+GameObject:
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 =======
 --- !u!1 &1215198854
 GameObject:
@@ -5680,6 +5709,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
+<<<<<<< HEAD
 <<<<<<< HEAD
   m_GameObject: {fileID: 1253959212}
   m_Enabled: 1
@@ -5696,6 +5726,8 @@ GameObject:
   m_ApplyToChildren: 1
   m_AffectedAgents: ffffffff
 =======
+=======
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1215198858}
@@ -5800,6 +5832,9 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+<<<<<<< HEAD
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
+=======
 >>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 --- !u!4 &1240493034 stripped
 Transform:
@@ -10040,8 +10075,11 @@ PrefabInstance:
       addedObject: {fileID: 600338239}
   m_SourcePrefab: {fileID: 100100000, guid: abfe6fc5a9b390a488839c1fc3b58dcd, type: 3}
 <<<<<<< HEAD
+<<<<<<< HEAD
 --- !u!114 &1550681652
 =======
+=======
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 --- !u!1 &1543827350
 GameObject:
   m_ObjectHideFlags: 0
@@ -10080,12 +10118,16 @@ RectTransform:
   m_SizeDelta: {x: 80, y: 10}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &1543827352
+<<<<<<< HEAD
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
+=======
 >>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
+<<<<<<< HEAD
 <<<<<<< HEAD
   m_GameObject: {fileID: 1253959200}
   m_Enabled: 1
@@ -10102,6 +10144,8 @@ MonoBehaviour:
   m_ApplyToChildren: 1
   m_AffectedAgents: ffffffff
 =======
+=======
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
   m_GameObject: {fileID: 1543827350}
   m_Enabled: 1
   m_EditorHideFlags: 0
@@ -10154,6 +10198,9 @@ MonoBehaviour:
   gravity: 9.8
   cameraTransform: {fileID: 883741681}
   weapon: {fileID: 0}
+<<<<<<< HEAD
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
+=======
 >>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 --- !u!143 &1559463049
 CharacterController:
@@ -10374,8 +10421,11 @@ MeshCollider:
   m_CookingOptions: 30
   m_Mesh: {fileID: 0}
 <<<<<<< HEAD
+<<<<<<< HEAD
 --- !u!114 &1641043726
 =======
+=======
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 --- !u!1 &1651022315
 GameObject:
   m_ObjectHideFlags: 0
@@ -10414,12 +10464,16 @@ RectTransform:
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1651022317
+<<<<<<< HEAD
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
+=======
 >>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
+<<<<<<< HEAD
 <<<<<<< HEAD
   m_GameObject: {fileID: 1641043723}
   m_Enabled: 1
@@ -10438,6 +10492,8 @@ MonoBehaviour:
 --- !u!114 &1646195396
 MonoBehaviour:
 =======
+=======
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
   m_GameObject: {fileID: 1651022315}
   m_Enabled: 1
   m_EditorHideFlags: 0
@@ -10464,11 +10520,15 @@ MonoBehaviour:
   m_PixelsPerUnitMultiplier: 1
 --- !u!222 &1651022318
 CanvasRenderer:
+<<<<<<< HEAD
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
+=======
 >>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
+<<<<<<< HEAD
 <<<<<<< HEAD
   m_GameObject: {fileID: 1935552627}
   m_Enabled: 1
@@ -10484,6 +10544,10 @@ CanvasRenderer:
   m_IgnoreFromBuild: 0
   m_ApplyToChildren: 1
   m_AffectedAgents: ffffffff
+=======
+  m_GameObject: {fileID: 1651022315}
+  m_CullTransparentMesh: 1
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 =======
   m_GameObject: {fileID: 1651022315}
   m_CullTransparentMesh: 1
@@ -11545,6 +11609,7 @@ MeshCollider:
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300004, guid: 52cab7cee1fd76b45b7ae4782200d5da, type: 3}
 <<<<<<< HEAD
+<<<<<<< HEAD
 --- !u!114 &1889483916
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11666,6 +11731,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 532cac50af3d5c949aa4a5d045f5a94e, type: 3}
+=======
+>>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 =======
 >>>>>>> parent of 338f9f1 (Add NPC prefab with health bar and AI scripts)
 --- !u!64 &1915952891
