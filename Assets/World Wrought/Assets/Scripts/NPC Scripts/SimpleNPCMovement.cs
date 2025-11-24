@@ -44,6 +44,21 @@ public class SimpleNPCMovement : MonoBehaviour
     /// </summary>
     public float ArrivalThreshold = 1f;
 
+    /// <summary>
+    /// Minimum time in seconds to idle after reaching a destination.  NPCs
+    /// will wait a random amount between MinIdleTime and MaxIdleTime
+    /// before moving again.  Set both values to zero for no idle delay.
+    /// </summary>
+    public float MinIdleTime = 0f;
+
+    /// <summary>
+    /// Maximum time in seconds to idle after reaching a destination.
+    /// </summary>
+    public float MaxIdleTime = 0f;
+
+    private float idleTimer;
+    private bool waiting;
+
     private NavMeshAgent agent;
 
     private void Awake()
@@ -63,10 +78,30 @@ public class SimpleNPCMovement : MonoBehaviour
         {
             return;
         }
+        // If waiting, count down the idle timer and pick a new destination when done.
+        if (waiting)
+        {
+            idleTimer -= Time.deltaTime;
+            if (idleTimer <= 0f)
+            {
+                waiting = false;
+                PickNewDestination();
+            }
+            return;
+        }
         // Check if we've reached the current destination; if so, pick another.
         if (!agent.pathPending && agent.remainingDistance <= ArrivalThreshold)
         {
-            PickNewDestination();
+            // Start idle timer before moving again.
+            if (MaxIdleTime > 0f)
+            {
+                waiting = true;
+                idleTimer = Random.Range(MinIdleTime, MaxIdleTime);
+            }
+            else
+            {
+                PickNewDestination();
+            }
         }
     }
 

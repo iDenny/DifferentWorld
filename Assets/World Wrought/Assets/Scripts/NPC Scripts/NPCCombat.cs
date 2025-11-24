@@ -43,6 +43,12 @@ public class NPCCombat : MonoBehaviour
             var otherChar = hit.GetComponent<Character>();
             if (otherChar != null && otherChar != character)
             {
+                // Do not attack if the target is inactive or dead
+                var targetCombat = hit.GetComponent<HeroicCombat>();
+                if (targetCombat == null || targetCombat.Health <= 0)
+                {
+                    continue;
+                }
                 // TODO: Add checks for clan, relationship or belief before attacking.
                 if (Time.time - lastAttackTime >= AttackCooldown)
                 {
