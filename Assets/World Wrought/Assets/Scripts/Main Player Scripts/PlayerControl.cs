@@ -46,9 +46,18 @@ public class PlayerControl : MonoBehaviour
     // constants and will not appear in the Inspector, so your Player
     // Control component remains clean.  Modify these strings here if you
     // change the parameter names in your Animator controller.
-    private const string HorizontalParam = "Velocity X";
-    private const string VerticalParam = "Velocity Y";
-    private const string AttackTriggerParam = "Attack";
+    private static readonly int HorizontalParam = Animator.StringToHash("Velocity X");
+    private static readonly int VerticalParam = Animator.StringToHash("Velocity Y");
+    private static readonly int WalkParam = Animator.StringToHash("isWalking");
+    private static readonly int RunParam = Animator.StringToHash("isRunning");
+    private static readonly int SprintParam = Animator.StringToHash("isSprinting");
+    private static readonly int JumpParam = Animator.StringToHash("isJumping");
+    private static readonly int FallParam = Animator.StringToHash("isFalling");
+    private static readonly int AttackParam = Animator.StringToHash("isAttacking");
+    private static readonly int GroundParam = Animator.StringToHash("isGround");
+
+    private Coroutine attackResetRoutine;
+    private const float AttackResetTime = 0.2f;
 
     private void Awake()
     {
@@ -67,7 +76,9 @@ public class PlayerControl : MonoBehaviour
         float horiz = Input.GetAxis("Horizontal");
         float vert = Input.GetAxis("Vertical");
         Vector3 inputDir = new Vector3(horiz, 0f, vert);
-        if (inputDir.sqrMagnitude > 0.01f)
+        bool hasInput = inputDir.sqrMagnitude > 0.01f;
+        bool isRunning = Input.GetKey(KeyCode.LeftShift);
+        if (hasInput)
         {
             // Convert input direction to world space relative to the camera
             Vector3 camForward = Camera.main.transform.forward;
@@ -76,7 +87,6 @@ public class PlayerControl : MonoBehaviour
             camRight.y = 0f;
             Vector3 moveDir = (camForward.normalized * vert + camRight.normalized * horiz).normalized;
             // Determine if running
-            bool isRunning = Input.GetKey(KeyCode.LeftShift);
             float speed = MoveSpeed * (isRunning ? RunMultiplier : 1f);
             // Build the movement vector including vertical velocity
             Vector3 motion = moveDir * speed;
@@ -85,23 +95,9 @@ public class PlayerControl : MonoBehaviour
             // Smoothly rotate towards movement direction
             Quaternion targetRot = Quaternion.LookRotation(moveDir);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, TurnSpeed * Time.deltaTime);
-            // Update animator with movement speed
-            if (animator != null)
-            {
-                // Pass raw input values directly into the blend tree
-                animator.SetFloat(HorizontalParam, horiz);
-                animator.SetFloat(VerticalParam, vert);
-            }
         }
-        else
-        {
-            // When not moving, ensure animator speed parameter is zero
-            if (animator != null)
-            {
-                animator.SetFloat(HorizontalParam, 0f);
-                animator.SetFloat(VerticalParam, 0f);
-            }
-        }
+
+        UpdateAnimatorMovement(horiz, vert, hasInput, isRunning);
 
         // Apply gravity and jumping
         if (controller.isGrounded && velocity.y < 0f)
@@ -112,11 +108,14 @@ public class PlayerControl : MonoBehaviour
         {
             // Apply jump force (using basic kinematic equation)
             velocity.y = Mathf.Sqrt(JumpForce * 2f * Gravity);
+            UpdateJumpState(true);
         }
         // Apply gravity to vertical velocity
         velocity.y -= Gravity * Time.deltaTime;
         // Move vertically
         controller.Move(new Vector3(0f, velocity.y, 0f) * Time.deltaTime);
+
+        UpdateGroundedAndFalling();
 
         // Handle attacks
         if (Input.GetMouseButtonDown(0))
@@ -124,26 +123,92 @@ public class PlayerControl : MonoBehaviour
             // Left mouse button: melee attack forward
             var target = GetAttackTarget();
             combat.MeleeAttack(target);
-            if (animator != null)
-            {
-                animator.SetTrigger(AttackTriggerParam);
-            }
+            TriggerAttackAnimation();
         }
         if (Input.GetMouseButtonDown(1))
         {
             // Right mouse button: ranged attack forward
             var target = GetAttackTarget();
             combat.Shoot(target);
-            if (animator != null)
-            {
-                animator.SetTrigger(AttackTriggerParam);
-            }
+            TriggerAttackAnimation();
         }
     }
 
-    // Attack flag reset is no longer required because we use an animation
-    // trigger.  The animator will automatically transition back when the
-    // attack animation finishes.
+    // Animator helpers keep movement, jumping, falling and attacking
+    // parameters synchronized with the controller.
+
+    private void UpdateAnimatorMovement(float horiz, float vert, bool hasInput, bool isRunning)
+    {
+        if (animator == null)
+        {
+            return;
+        }
+
+        animator.SetFloat(HorizontalParam, hasInput ? horiz : 0f);
+        animator.SetFloat(VerticalParam, hasInput ? vert : 0f);
+        animator.SetBool(WalkParam, hasInput && !isRunning);
+        animator.SetBool(RunParam, hasInput && isRunning);
+        animator.SetBool(SprintParam, hasInput && isRunning);
+    }
+
+    private void UpdateJumpState(bool isJumping)
+    {
+        if (animator == null)
+        {
+            return;
+        }
+
+        animator.SetBool(JumpParam, isJumping);
+        animator.SetBool(FallParam, false);
+    }
+
+    private void UpdateGroundedAndFalling()
+    {
+        if (animator == null)
+        {
+            return;
+        }
+
+        bool ascending = velocity.y > 0.1f;
+        bool grounded = controller.isGrounded && !ascending;
+        animator.SetBool(GroundParam, grounded);
+
+        if (grounded)
+        {
+            animator.SetBool(JumpParam, false);
+            animator.SetBool(FallParam, false);
+        }
+        else
+        {
+            bool falling = velocity.y <= 0f;
+            animator.SetBool(FallParam, falling);
+            animator.SetBool(JumpParam, !falling);
+        }
+    }
+
+    private void TriggerAttackAnimation()
+    {
+        if (animator == null)
+        {
+            return;
+        }
+
+        animator.SetBool(AttackParam, true);
+        if (attackResetRoutine != null)
+        {
+            StopCoroutine(attackResetRoutine);
+        }
+        attackResetRoutine = StartCoroutine(ResetAttackFlag());
+    }
+
+    private System.Collections.IEnumerator ResetAttackFlag()
+    {
+        yield return new WaitForSeconds(AttackResetTime);
+        if (animator != null)
+        {
+            animator.SetBool(AttackParam, false);
+        }
+    }
 
     /// <summary>
     /// Casts a ray forward to find a target with a HeroicCombat
