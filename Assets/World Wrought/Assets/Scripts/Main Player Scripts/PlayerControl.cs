@@ -35,6 +35,14 @@ public class PlayerControl : MonoBehaviour
         /// </summary>
         public float Gravity = 9.81f;
 
+    // Ground checking
+    [Tooltip("Layer mask used to detect ground for reliable jumping.")]
+    public LayerMask GroundLayer = ~0;
+    [Tooltip("Radius used for the ground check sphere at the player's feet.")]
+    public float GroundCheckRadius = 0.15f;
+    [Tooltip("Vertical offset from the transform position where the ground check sphere is cast.")]
+    public Vector3 GroundCheckOffset = new Vector3(0f, -0.9f, 0f);
+
     private CharacterController controller;
     private HeroicCombat combat;
     private Animator animator;
@@ -100,15 +108,19 @@ public class PlayerControl : MonoBehaviour
         UpdateAnimatorMovement(horiz, vert, hasInput, isRunning);
 
         // Apply gravity and jumping
-        if (controller.isGrounded && velocity.y < 0f)
+        bool grounded = IsGrounded();
+        if (grounded && velocity.y < 0f)
         {
-            velocity.y = -2f; // small negative value to keep grounded
+            // small negative value to keep controller grounded reliably
+            velocity.y = -2f;
         }
-        if (Input.GetButtonDown("Jump") && controller.isGrounded)
+        if (Input.GetButtonDown("Jump") && grounded)
         {
             // Apply jump force (using basic kinematic equation)
             velocity.y = Mathf.Sqrt(JumpForce * 2f * Gravity);
             UpdateJumpState(true);
+            // move immediately so character leaves ground this frame
+            controller.Move(new Vector3(0f, velocity.y * Time.deltaTime, 0f));
         }
         // Apply gravity to vertical velocity
         velocity.y -= Gravity * Time.deltaTime;
@@ -169,20 +181,21 @@ public class PlayerControl : MonoBehaviour
             return;
         }
 
+        // Use our reliable ground check rather than relying solely on CharacterController.isGrounded
+        bool grounded = IsGrounded();
         bool ascending = velocity.y > 0.1f;
-        bool grounded = controller.isGrounded && !ascending;
-        animator.SetBool(GroundParam, grounded);
+        animator.SetBool(GroundParam, grounded && !ascending);
 
-        if (grounded)
+        if (grounded && velocity.y <= 0.1f)
         {
             animator.SetBool(JumpParam, false);
             animator.SetBool(FallParam, false);
         }
         else
         {
-            bool falling = velocity.y <= 0f;
+            bool falling = velocity.y <= -0.5f;
             animator.SetBool(FallParam, falling);
-            animator.SetBool(JumpParam, !falling);
+            animator.SetBool(JumpParam, !falling && velocity.y > 0f);
         }
     }
 
@@ -223,4 +236,23 @@ public class PlayerControl : MonoBehaviour
         }
         return null;
     }
+
+    private bool IsGrounded()
+    {
+        // First ask CharacterController - it's cheap and usually accurate
+        if (controller.isGrounded)
+            return true;
+
+        // Fallback: sphere check at feet to handle small gaps due to skin width or moving platforms
+        Vector3 checkPos = transform.position + GroundCheckOffset;
+        return Physics.CheckSphere(checkPos, GroundCheckRadius, GroundLayer, QueryTriggerInteraction.Ignore);
+    }
+
+#if UNITY_EDITOR
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(transform.position + GroundCheckOffset, GroundCheckRadius);
+    }
+#endif
 }
