@@ -11,8 +11,12 @@ using UnityEngine;
 public class HeroicCombat : MonoBehaviour
 {
     /// <summary>
-    /// Hit points for the character.  When this reaches zero the
-    /// character is considered dead.
+    /// Maximum hit points for the character.
+    /// </summary>
+    public int MaxHealth = 100;
+
+    /// <summary>
+    /// Current hit points for the character.
     /// </summary>
     public int Health = 100;
 
@@ -27,6 +31,21 @@ public class HeroicCombat : MonoBehaviour
     /// upgrades or ammunition types.
     /// </summary>
     public int RangedDamage = 15;
+
+    // Optional UI and animator references
+    private UIHealthBar uiHealthBar;
+    private Animator animator;
+    private Collider objectCollider;
+
+    private void Awake()
+    {
+        Health = Mathf.Clamp(Health, 0, MaxHealth);
+        // Try to find a UI health bar in children
+        uiHealthBar = GetComponentInChildren<UIHealthBar>();
+        animator = GetComponent<Animator>();
+        objectCollider = GetComponent<Collider>();
+        UpdateHealthUI();
+    }
 
     /// <summary>
     /// Triggers a melee attack against a target.  In a real game this
@@ -65,10 +84,21 @@ public class HeroicCombat : MonoBehaviour
     /// </summary>
     public void TakeDamage(int amount)
     {
+        if (amount <= 0) return;
         Health -= amount;
+        UpdateHealthUI();
         if (Health <= 0)
         {
             Die();
+        }
+    }
+
+    private void UpdateHealthUI()
+    {
+        if (uiHealthBar != null && MaxHealth > 0)
+        {
+            float pct = Mathf.Clamp01((float)Health / (float)MaxHealth);
+            uiHealthBar.SetHealthBarPercentage(pct);
         }
     }
 
@@ -78,8 +108,33 @@ public class HeroicCombat : MonoBehaviour
     /// </summary>
     protected virtual void Die()
     {
-        Debug.Log($"{GetComponent<Character>().CharacterName} has died.");
-        // Disable character components or trigger a death event here.
-        gameObject.SetActive(false);
+        // Trigger death animation if available
+        if (animator != null)
+        {
+            animator.SetBool("isDead", true);
+        }
+
+        // Hide UI health bar if present
+        if (uiHealthBar != null)
+        {
+            uiHealthBar.gameObject.SetActive(false);
+        }
+
+        // Disable all MonoBehaviour scripts on this gameobject (except this) to stop behaviour
+        var scripts = GetComponents<MonoBehaviour>();
+        foreach (var script in scripts)
+        {
+            if (script == this) continue;
+            script.enabled = false;
+        }
+
+        // Disable collider to prevent further interactions
+        if (objectCollider != null)
+        {
+            objectCollider.enabled = false;
+        }
+
+        // Optionally, deactivate the gameobject after a delay - keep this commented
+        // gameObject.SetActive(false);
     }
 }

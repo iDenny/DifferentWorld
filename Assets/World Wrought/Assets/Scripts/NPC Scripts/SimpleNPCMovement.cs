@@ -60,25 +60,31 @@ public class SimpleNPCMovement : MonoBehaviour
     private bool waiting;
 
     private NavMeshAgent agent;
+    private Animator animator;
+
+    // Animator hashes
+    private static readonly int HorizontalParam = Animator.StringToHash("Velocity X");
+    private static readonly int VerticalParam = Animator.StringToHash("Velocity Y");
+    private static readonly int WalkParam = Animator.StringToHash("isWalking");
+    private static readonly int RunParam = Animator.StringToHash("isRunning");
+    private static readonly int SprintParam = Animator.StringToHash("isSprinting");
 
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
-        // Prevent the agent from automatically updating rotation; we'll allow
-        // the model to control its own orientation if needed.
-        agent.updateRotation = true;
+        animator = GetComponent<Animator>();
+        // Let the script handle rotation so we can match animator-driven turns
+        agent.updateRotation = false;
         PickNewDestination();
     }
 
     private void Update()
     {
-        // If not using random wander and no destinations are provided, there is
-        // nowhere to go.
         if (!UseRandomWander && (Destinations == null || Destinations.Count == 0))
         {
+            UpdateAnimatorFromVelocity();
             return;
         }
-        // If waiting, count down the idle timer and pick a new destination when done.
         if (waiting)
         {
             idleTimer -= Time.deltaTime;
@@ -87,12 +93,11 @@ public class SimpleNPCMovement : MonoBehaviour
                 waiting = false;
                 PickNewDestination();
             }
+            UpdateAnimatorFromVelocity();
             return;
         }
-        // Check if we've reached the current destination; if so, pick another.
         if (!agent.pathPending && agent.remainingDistance <= ArrivalThreshold)
         {
-            // Start idle timer before moving again.
             if (MaxIdleTime > 0f)
             {
                 waiting = true;
@@ -103,6 +108,8 @@ public class SimpleNPCMovement : MonoBehaviour
                 PickNewDestination();
             }
         }
+
+        UpdateAnimatorFromVelocity();
     }
 
     /// <summary>
@@ -142,5 +149,39 @@ public class SimpleNPCMovement : MonoBehaviour
         }
         // If sampling fails, fall back to current position.
         return transform.position;
+    }
+
+    private void UpdateAnimatorFromVelocity()
+    {
+        if (animator == null || agent == null) return;
+
+        Vector3 worldVel = agent.velocity;
+        Vector3 localVel = transform.InverseTransformDirection(worldVel);
+
+        float vx = localVel.x;
+        float vy = localVel.z;
+
+        animator.SetFloat(HorizontalParam, vx, 0.1f, Time.deltaTime);
+        animator.SetFloat(VerticalParam, vy, 0.1f, Time.deltaTime);
+
+        float speed = worldVel.magnitude;
+        bool isWalking = speed > 0.1f && speed <= agent.speed + 0.1f;
+        bool isRunning = speed > agent.speed + 0.1f;
+
+        animator.SetBool(WalkParam, isWalking);
+        animator.SetBool(RunParam, isRunning);
+        animator.SetBool(SprintParam, isRunning && speed >= agent.speed - 0.1f);
+
+        // Smoothly rotate towards movement direction for visuals
+        if (speed > 0.1f)
+        {
+            Vector3 lookDir = worldVel.normalized;
+            lookDir.y = 0f;
+            if (lookDir.sqrMagnitude > 0.001f)
+            {
+                Quaternion target = Quaternion.LookRotation(lookDir);
+                transform.rotation = Quaternion.Slerp(transform.rotation, target, 10f * Time.deltaTime);
+            }
+        }
     }
 }
