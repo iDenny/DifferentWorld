@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 /// <summary>
 /// Provides basic combat functionality without referencing any existing
@@ -48,16 +49,14 @@ public class HeroicCombat : MonoBehaviour
     }
 
     /// <summary>
-    /// Triggers a melee attack against a target.  In a real game this
-    /// would involve animations, hit detection and feedback.  Here we
-    /// simply subtract health from the target if they have a combat
-    /// component.
+    /// Melee attack: accept any collider or child object and resolve the
+    /// HeroicCombat component on the target or its parents.
     /// </summary>
     public void MeleeAttack(GameObject target)
     {
         if (target == null) return;
-        var combat = target.GetComponent<HeroicCombat>();
-        if (combat != null)
+        var combat = target.GetComponentInParent<HeroicCombat>();
+        if (combat != null && combat != this)
         {
             combat.TakeDamage(MeleeDamage);
         }
@@ -71,8 +70,8 @@ public class HeroicCombat : MonoBehaviour
     public void Shoot(GameObject target)
     {
         if (target == null) return;
-        var combat = target.GetComponent<HeroicCombat>();
-        if (combat != null)
+        var combat = target.GetComponentInParent<HeroicCombat>();
+        if (combat != null && combat != this)
         {
             combat.TakeDamage(RangedDamage);
         }
@@ -89,7 +88,8 @@ public class HeroicCombat : MonoBehaviour
         UpdateHealthUI();
         if (Health <= 0)
         {
-            Die();
+            Health = 0;
+            Die(); // immediate death (no delay)
         }
     }
 
@@ -102,10 +102,6 @@ public class HeroicCombat : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Handles the character's death.  Override this to add death
-    /// animations or respawn logic.
-    /// </summary>
     protected virtual void Die()
     {
         // Trigger death animation if available
@@ -114,13 +110,11 @@ public class HeroicCombat : MonoBehaviour
             animator.SetBool("isDead", true);
         }
 
-        // Hide UI health bar if present
         if (uiHealthBar != null)
         {
             uiHealthBar.gameObject.SetActive(false);
         }
 
-        // Disable all MonoBehaviour scripts on this gameobject (except this) to stop behaviour
         var scripts = GetComponents<MonoBehaviour>();
         foreach (var script in scripts)
         {
@@ -128,13 +122,12 @@ public class HeroicCombat : MonoBehaviour
             script.enabled = false;
         }
 
-        // Disable collider to prevent further interactions
         if (objectCollider != null)
         {
             objectCollider.enabled = false;
         }
 
-        // Optionally, deactivate the gameobject after a delay - keep this commented
-        // gameObject.SetActive(false);
+        // Deactivate immediately so the dead object no longer participates
+        gameObject.SetActive(false);
     }
 }

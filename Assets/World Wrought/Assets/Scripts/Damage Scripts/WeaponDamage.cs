@@ -6,10 +6,12 @@ public class WeaponDamage : MonoBehaviour
 
     public void ApplyDamage(GameObject target)
     {
-        Health health = target.GetComponent<Health>();
-        if (health != null)
+        if (target == null) return;
+        // Look up HeroicCombat on the hit object or its parents so child colliders work
+        var combat = target.GetComponentInParent<HeroicCombat>();
+        if (combat != null)
         {
-            health.TakeDamage(amount);
+            combat.TakeDamage(Mathf.CeilToInt(amount));
         }
     }
 }
