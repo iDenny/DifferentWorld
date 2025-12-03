@@ -9,7 +9,7 @@ using System.Collections;
 /// as a starting point for your own unique game mechanics.
 /// </summary>
 [RequireComponent(typeof(Character))]
-public class HeroicCombat : MonoBehaviour
+public class HeroicCombat : MonoBehaviour, IDamageable
 {
     /// <summary>
     /// Maximum hit points for the character.

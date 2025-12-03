@@ -7,7 +7,14 @@ public class WeaponDamage : MonoBehaviour
     public void ApplyDamage(GameObject target)
     {
         if (target == null) return;
-        // Look up HeroicCombat on the hit object or its parents so child colliders work
+        // Prefer IDamageable so any weapon implementation can be supported
+        var damageable = target.GetComponentInParent<IDamageable>();
+        if (damageable != null)
+        {
+            damageable.TakeDamage(Mathf.CeilToInt(amount));
+            return;
+        }
+        // Backwards compatibility: try HeroicCombat specifically
         var combat = target.GetComponentInParent<HeroicCombat>();
         if (combat != null)
         {
