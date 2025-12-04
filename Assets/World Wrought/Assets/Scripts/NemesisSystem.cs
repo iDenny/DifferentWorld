@@ -84,4 +84,28 @@ public class NemesisSystem : MonoBehaviour
     {
         return character != null && Nemeses.TryGetValue(character, out var value) ? value : 0f;
     }
+
+    // Record a named interaction (e.g. "Hit: -20 HP") and bump hostility optionally
+    public void RecordInteraction(Character other, string interaction, float hostilityDelta = 0f)
+    {
+        if (other == null) return;
+        AddNemesis(other, hostilityDelta);
+        if (!Profiles.ContainsKey(other))
+        {
+            Profiles[other] = new NemesisProfile(other.CharacterName);
+        }
+        Profiles[other].History.Add(interaction);
+    }
+
+    // Promote a nemesis entry to reflect kills or notable deeds. Creates a profile if missing.
+    public void PromoteNemesis(Character other, int levels = 1)
+    {
+        if (other == null) return;
+        if (!Profiles.ContainsKey(other))
+        {
+            Profiles[other] = new NemesisProfile(other.CharacterName);
+        }
+        Profiles[other].Rank += levels;
+        Profiles[other].History.Add($"Promoted by interaction at {Time.time}");
+    }
 }

@@ -12,7 +12,8 @@ public class AIController : MonoBehaviour
 
     public float viewRadius = 15;                   //  Radius of the enemy view
     public float viewAngle = 90;                    //  Angle of the enemy view
-    public LayerMask playerMask;                    //  To detect the player with the raycast
+    [Tooltip("Layer mask used to select valid targets for this AI (e.g. Player)")]
+    public LayerMask targetMask;                    //  To detect the target with the raycast
     public LayerMask obstacleMask;                  //  To detect the obstacules with the raycast
     public float meshResolution = 1.0f;             //  How many rays will cast per degree
     public int edgeIterations = 4;                  //  Number of iterations to get a better performance of the mesh filter when the raycast hit an obstacule
@@ -211,39 +212,38 @@ public class AIController : MonoBehaviour
 
     void EnviromentView()
     {
-        Collider[] playerInRange = Physics.OverlapSphere(transform.position, viewRadius, playerMask);   //  Make an overlap sphere around the enemy to detect the playermask in the view radius
+        // Use OverlapSphere with the targetMask so only intended layers are detected
+        Collider[] targetsInRange = Physics.OverlapSphere(transform.position, viewRadius, targetMask);
 
-        for (int i = 0; i < playerInRange.Length; i++)
+        for (int i = 0; i < targetsInRange.Length; i++)
         {
-            // Ensure we are only reacting to objects explicitly tagged as Player
-            if (!playerInRange[i].CompareTag("Player"))
+            var col = targetsInRange[i];
+            // Also require tag to be Player for extra safety; make this configurable if you want
+            if (!col.CompareTag("Player"))
                 continue;
 
-            Transform player = playerInRange[i].transform;
+            Transform player = col.transform;
             Vector3 dirToPlayer = (player.position - transform.position).normalized;
             if (Vector3.Angle(transform.forward, dirToPlayer) < viewAngle / 2)
             {
-                float dstToPlayer = Vector3.Distance(transform.position, player.position);          //  Distance of the enmy and the player
+                float dstToPlayer = Vector3.Distance(transform.position, player.position);
                 if (!Physics.Raycast(transform.position, dirToPlayer, dstToPlayer, obstacleMask))
                 {
-                    m_playerInRange = true;             //  The player has been seeing by the enemy and then the nemy starts to chasing the player
-                    m_IsPatrol = false;                 //  Change the state to chasing the player
+                    m_playerInRange = true;
+                    m_IsPatrol = false;
                 }
                 else
                 {
-                    /*
-                     *  If the player is behind a obstacle the player position will not be registered
-                     * */
                     m_playerInRange = false;
                 }
             }
             if (Vector3.Distance(transform.position, player.position) > viewRadius)
             {
-                m_playerInRange = false;                //  Change the sate of chasing
+                m_playerInRange = false;
             }
             if (m_playerInRange)
             {
-                m_PlayerPosition = player.transform.position;       //  Save the player's current position if the player is in range of vision
+                m_PlayerPosition = player.transform.position;
             }
         }
     }

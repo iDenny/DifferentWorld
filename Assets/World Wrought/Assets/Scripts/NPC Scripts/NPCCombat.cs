@@ -1,13 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
 
-/// <summary>
-/// Simple combat AI for NPCs.  When another <see cref="Character"/>
-/// enters the attack range, the NPC will use its <see cref="HeroicCombat"/>
-/// component to perform a melee attack.  This script also attempts to
-/// stop or slow movement while engaging a target so NPCs don't wander
-/// away while attacking. Smooth approach included.
-/// </summary>
 [RequireComponent(typeof(HeroicCombat))]
 [RequireComponent(typeof(Character))]
 public class NPCCombat : MonoBehaviour
@@ -16,11 +9,19 @@ public class NPCCombat : MonoBehaviour
     public float AttackCooldown = 1f;
     public float DisengageDistance = 6f;
 
-    // Smooth approach settings
+    [Tooltip("Layer mask of valid targets this NPC will consider (e.g. Target or Player layers).")]
+    public LayerMask TargetMask = ~0;
+
     [Tooltip("How close the NPC tries to get before switching to attack.")]
     public float ApproachDistance = 1.8f;
-    [Tooltip("Speed multiplier used when approaching the target.")]
-    public float ApproachSpeedMultiplier = 0.9f;
+
+    [Tooltip("Walking speed used during wandering and precise approach.")]
+    public float WalkSpeed = 2f;
+    [Tooltip("Running speed used when chasing detected targets.")]
+    public float RunSpeed = 6f;
+
+    [Tooltip("How long attack animation lasts (used to reset isAttacking flag).")]
+    public float AttackAnimDuration = 0.6f;
 
     private HeroicCombat combat;
     private Character character;
@@ -31,13 +32,28 @@ public class NPCCombat : MonoBehaviour
     private SimpleNPCMovement simpleMovement;
     private float originalAgentSpeed = 3.5f;
 
+    private Animator animator;
+    private WeaponDamage[] weapons;
+
+    private static readonly int AttackParam = Animator.StringToHash("isAttacking");
+
+    private Coroutine attackResetRoutine;
+
     private void Awake()
     {
         combat = GetComponent<HeroicCombat>();
         character = GetComponent<Character>();
         navAgent = GetComponent<NavMeshAgent>();
         simpleMovement = GetComponent<SimpleNPCMovement>();
-        if (navAgent != null) originalAgentSpeed = navAgent.speed;
+        animator = GetComponent<Animator>();
+        weapons = GetComponentsInChildren<WeaponDamage>(true);
+        if (navAgent != null)
+        {
+            originalAgentSpeed = navAgent.speed;
+            navAgent.speed = WalkSpeed;
+            navAgent.acceleration = 8f;
+            navAgent.angularSpeed = 120f;
+        }
     }
 
     private void Update()
@@ -55,7 +71,7 @@ public class NPCCombat : MonoBehaviour
         }
 
         // Look for targets within detection radius (use a larger radius than attack range)
-        Collider[] hits = Physics.OverlapSphere(transform.position, Mathf.Max(AttackRange, DisengageDistance));
+        Collider[] hits = Physics.OverlapSphere(transform.position, Mathf.Max(AttackRange, DisengageDistance), TargetMask);
         foreach (var hit in hits)
         {
             var otherChar = hit.GetComponent<Character>();
@@ -69,7 +85,16 @@ public class NPCCombat : MonoBehaviour
                 // Try immediate attack if close
                 if (Vector3.Distance(transform.position, hit.transform.position) <= AttackRange && Time.time - lastAttackTime >= AttackCooldown)
                 {
-                    combat.MeleeAttack(hit.gameObject);
+                    // If this NPC has weapon colliders, let them apply damage; otherwise use combat.MeleeAttack
+                    if (weapons != null && weapons.Length > 0)
+                    {
+                        foreach (var w in weapons) w.PerformHitCheck();
+                    }
+                    else
+                    {
+                        combat.MeleeAttack(hit.gameObject);
+                    }
+                    TriggerAttackAnimation();
                     lastAttackTime = Time.time;
                 }
                 break;
@@ -94,26 +119,60 @@ public class NPCCombat : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir.normalized), 10f * Time.deltaTime);
         }
 
-        // If further than approach distance, move closer smoothly
-        if (navAgent != null && dst > ApproachDistance)
+        if (navAgent != null)
         {
-            navAgent.isStopped = false;
-            navAgent.speed = originalAgentSpeed * ApproachSpeedMultiplier;
-            navAgent.SetDestination(currentTarget.transform.position);
-        }
-        else
-        {
-            // Close enough to attack: stop moving and attack on cooldown
-            if (navAgent != null)
+            float slowStart = ApproachDistance * 1.5f;
+            if (dst > slowStart)
+            {
+                navAgent.isStopped = false;
+                navAgent.speed = RunSpeed;
+                navAgent.SetDestination(currentTarget.transform.position);
+            }
+            else if (dst > ApproachDistance)
+            {
+                navAgent.isStopped = false;
+                float t = Mathf.Clamp01((dst - ApproachDistance) / (slowStart - ApproachDistance));
+                navAgent.speed = Mathf.Lerp(WalkSpeed, RunSpeed, t);
+                navAgent.SetDestination(currentTarget.transform.position);
+            }
+            else
             {
                 navAgent.isStopped = true;
+                if (Time.time - lastAttackTime >= AttackCooldown)
+                {
+                    if (weapons != null && weapons.Length > 0)
+                    {
+                        foreach (var w in weapons) w.PerformHitCheck();
+                    }
+                    else
+                    {
+                        combat.MeleeAttack(currentTarget);
+                    }
+                    TriggerAttackAnimation();
+                    lastAttackTime = Time.time;
+                }
             }
-            if (Time.time - lastAttackTime >= AttackCooldown)
+
+            // Update animator speed parameter if available
+            if (animator != null)
             {
-                combat.MeleeAttack(currentTarget);
-                lastAttackTime = Time.time;
+                float speed = navAgent.velocity.magnitude;
+                if (AnimatorHasParameter("Speed"))
+                {
+                    animator.SetFloat("Speed", speed, 0.1f, Time.deltaTime);
+                }
             }
         }
+    }
+
+    private bool AnimatorHasParameter(string paramName)
+    {
+        if (animator == null) return false;
+        foreach (var p in animator.parameters)
+        {
+            if (p.name == paramName) return true;
+        }
+        return false;
     }
 
     private bool IsValidTarget(GameObject t)
@@ -126,12 +185,12 @@ public class NPCCombat : MonoBehaviour
     private void StartEngaging(GameObject target)
     {
         currentTarget = target;
-        // slow or pause autonomous movement
         if (simpleMovement != null) simpleMovement.enabled = false;
         if (navAgent != null)
         {
             originalAgentSpeed = navAgent.speed;
             navAgent.isStopped = false;
+            navAgent.speed = RunSpeed;
         }
     }
 
@@ -141,7 +200,7 @@ public class NPCCombat : MonoBehaviour
         if (navAgent != null)
         {
             navAgent.isStopped = false;
-            navAgent.speed = originalAgentSpeed;
+            navAgent.speed = WalkSpeed;
         }
         if (simpleMovement != null)
         {
@@ -150,9 +209,25 @@ public class NPCCombat : MonoBehaviour
         }
     }
 
+    private void TriggerAttackAnimation()
+    {
+        if (animator == null) return;
+        animator.SetBool(AttackParam, true);
+        if (attackResetRoutine != null) StopCoroutine(attackResetRoutine);
+        attackResetRoutine = StartCoroutine(ResetAttackFlag());
+    }
+
+    private System.Collections.IEnumerator ResetAttackFlag()
+    {
+        yield return new WaitForSeconds(AttackAnimDuration);
+        if (animator != null) animator.SetBool(AttackParam, false);
+    }
+
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, AttackRange);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, DisengageDistance);
     }
 }

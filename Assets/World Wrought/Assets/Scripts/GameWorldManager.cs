@@ -40,6 +40,11 @@ public class GameWorldManager : MonoBehaviour
 
     private List<Character> citizens = new List<Character>();
 
+    // Sample name lists and family names for randomization
+    private static readonly string[] FirstNames = { "Aldric", "Borin", "Celia", "Darya", "Edwin", "Fara", "Galen", "Hilda" };
+    private static readonly string[] FamilyNames = { "Stone", "Raven", "Iron", "Green", "Storm", "Black" };
+    private static readonly string[] NemesisBackgroundTraits = { "Vengeful", "Cowardly", "Strategist", "Berserker" };
+
     private void Start()
     {
         // Find the colony system if not assigned in the Inspector.
@@ -77,10 +82,78 @@ public class GameWorldManager : MonoBehaviour
         Character character = npcObj.GetComponent<Character>();
         if (character != null)
         {
+            // Assign random name and family
+            character.CharacterName = FirstNames[Random.Range(0, FirstNames.Length)] + " " + Random.Range(1, 9999);
+            var famName = FamilyNames[Random.Range(0, FamilyNames.Length)];
+            character.FamilyName = famName;
+
+            // Randomize combat stats so NPCs differ from prefab
+            var hc = npcObj.GetComponent<HeroicCombat>();
+            if (hc != null)
+            {
+                hc.MaxHealth = Random.Range(60, 151);
+                hc.Health = hc.MaxHealth;
+                hc.MeleeDamage = Random.Range(8, 36);
+                hc.RangedDamage = Random.Range(6, 26);
+                hc.DeathDelay = Random.Range(0.8f, 2.0f);
+            }
+
+            // Randomize movement speeds
+            var npcCombat = npcObj.GetComponent<NPCCombat>();
+            var agent = npcObj.GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (npcCombat != null)
+            {
+                npcCombat.WalkSpeed = Random.Range(1.2f, 2.5f);
+                npcCombat.RunSpeed = Random.Range(4f, 7f);
+                npcCombat.ApproachDistance = Random.Range(1.2f, 2.5f);
+            }
+            if (agent != null)
+            {
+                agent.speed = npcCombat != null ? npcCombat.WalkSpeed : Random.Range(1.2f, 2.5f);
+                agent.acceleration = Random.Range(4f, 12f);
+            }
+
+            // Seed a NemesisProfile trait for background
+            var nem = character.GetComponent<NemesisSystem>();
+            if (nem != null)
+            {
+                var trait = NemesisBackgroundTraits[Random.Range(0, NemesisBackgroundTraits.Length)];
+                if (nem.Profiles != null)
+                {
+                    // create a profile keyed to self to hold background trait
+                    nem.Profiles[character] = new NemesisProfile(character.CharacterName) { Personality = trait };
+                }
+            }
+
             citizens.Add(character);
             if (Colony != null)
             {
                 Colony.AddCitizen(character);
+            }
+
+            // Optionally keep NPCs mostly stationary by disabling SimpleNPCMovement 70% of the time
+            var simple = npcObj.GetComponent<SimpleNPCMovement>();
+            if (simple != null)
+            {
+                if (Random.value > 0.7f)
+                {
+                    simple.enabled = false;
+                }
+                else
+                {
+                    // small wandering radius for patrols
+                    simple.UseRandomWander = true;
+                    simple.WanderRadius = Random.Range(1f, 6f);
+                    simple.MinIdleTime = 1f;
+                    simple.MaxIdleTime = 5f;
+                }
+            }
+
+            // Add FriendlyNPC behaviour for a subset
+            if (Random.value > 0.6f)
+            {
+                var friendly = npcObj.AddComponent<FriendlyNPC>();
+                friendly.Setup(character);
             }
         }
         return character;

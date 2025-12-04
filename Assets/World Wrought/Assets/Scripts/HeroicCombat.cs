@@ -38,6 +38,12 @@ public class HeroicCombat : MonoBehaviour, IDamageable
     private Animator animator;
     private Collider objectCollider;
 
+    // Optional: time to wait for death animation before deactivation
+    public float DeathDelay = 1.0f;
+
+    // Track the last attacker so we can record promotions or history on death
+    private Character lastAttacker;
+
     private void Awake()
     {
         Health = Mathf.Clamp(Health, 0, MaxHealth);
@@ -58,7 +64,8 @@ public class HeroicCombat : MonoBehaviour, IDamageable
         var combat = target.GetComponentInParent<HeroicCombat>();
         if (combat != null && combat != this)
         {
-            combat.TakeDamage(MeleeDamage);
+            var attackerChar = GetComponent<Character>();
+            combat.TakeDamage(MeleeDamage, attackerChar);
         }
     }
 
@@ -73,7 +80,8 @@ public class HeroicCombat : MonoBehaviour, IDamageable
         var combat = target.GetComponentInParent<HeroicCombat>();
         if (combat != null && combat != this)
         {
-            combat.TakeDamage(RangedDamage);
+            var attackerChar = GetComponent<Character>();
+            combat.TakeDamage(RangedDamage, attackerChar);
         }
     }
 
@@ -83,28 +91,42 @@ public class HeroicCombat : MonoBehaviour, IDamageable
     /// </summary>
     public void TakeDamage(int amount)
     {
+        TakeDamage(amount, null);
+    }
+
+    /// <summary>
+    /// New overload that accepts the source of the damage so we can record nemesis interactions
+    /// </summary>
+    public void TakeDamage(int amount, Character source)
+    {
         if (amount <= 0) return;
+
+        // Record last attacker for death processing
+        if (source != null)
+            lastAttacker = source;
+
         Health -= amount;
         UpdateHealthUI();
+
+        // If we have a NemesisSystem on this character, record the interaction
+        var myChar = GetComponent<Character>();
+        var nem = myChar != null ? myChar.GetComponent<NemesisSystem>() : null;
+        if (nem != null && source != null)
+        {
+            float hostilityDelta = Mathf.Clamp01((float)amount / Mathf.Max(1, MaxHealth));
+            nem.RecordInteraction(source, $"Hit by {source.CharacterName} for {amount} HP", hostilityDelta);
+        }
+
         if (Health <= 0)
         {
             Health = 0;
-            Die(); // immediate death (no delay)
+            // Play death animation then deactivate after DeathDelay
+            StartCoroutine(HandleDeath());
         }
     }
 
-    private void UpdateHealthUI()
+    private IEnumerator HandleDeath()
     {
-        if (uiHealthBar != null && MaxHealth > 0)
-        {
-            float pct = Mathf.Clamp01((float)Health / (float)MaxHealth);
-            uiHealthBar.SetHealthBarPercentage(pct);
-        }
-    }
-
-    protected virtual void Die()
-    {
-        // Trigger death animation if available
         if (animator != null)
         {
             animator.SetBool("isDead", true);
@@ -115,6 +137,7 @@ public class HeroicCombat : MonoBehaviour, IDamageable
             uiHealthBar.gameObject.SetActive(false);
         }
 
+        // Disable other scripts to stop behaviour while death animation plays
         var scripts = GetComponents<MonoBehaviour>();
         foreach (var script in scripts)
         {
@@ -127,7 +150,36 @@ public class HeroicCombat : MonoBehaviour, IDamageable
             objectCollider.enabled = false;
         }
 
+        // If someone killed this character, promote them in their NemesisSystem
+        if (lastAttacker != null)
+        {
+            var attackerNem = lastAttacker.GetComponent<NemesisSystem>();
+            if (attackerNem != null)
+            {
+                attackerNem.PromoteNemesis(GetComponent<Character>(), 1);
+            }
+        }
+
+        // Wait for death animation or fallback delay
+        float wait = DeathDelay;
+        if (animator != null)
+        {
+            // If there's a death animation clip length available we could query it, but keep simple
+            // Animator may be in a controller with transitions; use DeathDelay as a reasonable default
+        }
+
+        yield return new WaitForSeconds(wait);
+
         // Deactivate immediately so the dead object no longer participates
         gameObject.SetActive(false);
+    }
+
+    private void UpdateHealthUI()
+    {
+        if (uiHealthBar != null && MaxHealth > 0)
+        {
+            float pct = Mathf.Clamp01((float)Health / (float)MaxHealth);
+            uiHealthBar.SetHealthBarPercentage(pct);
+        }
     }
 }

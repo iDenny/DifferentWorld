@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// Basic player controller that moves using Unity's CharacterController and
@@ -65,7 +65,12 @@ public class PlayerControl : MonoBehaviour
     private static readonly int GroundParam = Animator.StringToHash("isGround");
 
     private Coroutine attackResetRoutine;
+    private Coroutine attackFallbackRoutine;
     private const float AttackResetTime = 0.2f;
+    private const float AttackFallbackTime = 0.25f; // if animation event missing
+
+    private enum PendingAttack { None, Melee, Ranged }
+    private PendingAttack pendingAttack = PendingAttack.None;
 
     private void Awake()
     {
@@ -129,20 +134,116 @@ public class PlayerControl : MonoBehaviour
 
         UpdateGroundedAndFalling();
 
-        // Handle attacks
+        // Handle attacks: only trigger animation here. Damage is applied during the attack animation
         if (Input.GetMouseButtonDown(0))
         {
-            // Left mouse button: melee attack forward
-            var target = GetAttackTarget();
-            combat.MeleeAttack(target);
+            // Melee
+            pendingAttack = PendingAttack.Melee;
             TriggerAttackAnimation();
+            if (attackFallbackRoutine != null) StopCoroutine(attackFallbackRoutine);
+            attackFallbackRoutine = StartCoroutine(AttackFallback());
         }
         if (Input.GetMouseButtonDown(1))
         {
-            // Right mouse button: ranged attack forward
-            var target = GetAttackTarget();
-            combat.Shoot(target);
+            // Ranged
+            pendingAttack = PendingAttack.Ranged;
             TriggerAttackAnimation();
+            if (attackFallbackRoutine != null) StopCoroutine(attackFallbackRoutine);
+            attackFallbackRoutine = StartCoroutine(AttackFallback());
+        }
+    }
+
+    private System.Collections.IEnumerator AttackFallback()
+    {
+        yield return new WaitForSeconds(AttackFallbackTime);
+        if (pendingAttack != PendingAttack.None)
+        {
+            Debug.Log("PlayerControl: AttackFallback triggered PerformAttackHit");
+            PerformAttackHit();
+        }
+    }
+
+    // This method is intended to be called from an animation event on the attack animation
+    // at the frame where the weapon should hit. It performs a short ray/sphere test and
+    // applies damage to the first valid target hit.
+    public void PerformAttackHit()
+    {
+        if (attackFallbackRoutine != null)
+        {
+            StopCoroutine(attackFallbackRoutine);
+            attackFallbackRoutine = null;
+        }
+
+        if (pendingAttack == PendingAttack.None) return;
+
+        Debug.Log($"PlayerControl: Performing attack hit. Pending={pendingAttack}");
+
+        // First try weapon components attached to the player (preferred if you have weapon colliders)
+        var weapons = GetComponentsInChildren<WeaponDamage>(true);
+        if (weapons != null && weapons.Length > 0)
+        {
+            Debug.Log($"PlayerControl: Found {weapons.Length} weapon components. Calling PerformHitCheck on each.");
+            foreach (var w in weapons)
+            {
+                if (w == null) continue;
+                w.PerformHitCheck();
+            }
+            // Reset pending attack after weapon checks - they applied damage directly
+            pendingAttack = PendingAttack.None;
+            return;
+        }
+
+        // Fallback: Cast a short ray/sphere in front of the player to detect a target
+        Vector3 origin = transform.position + Vector3.up * 1f;
+        Vector3 dir = transform.forward;
+        float range = 1.5f; // melee reach
+        var attackerChar = GetComponent<Character>();
+
+        if (pendingAttack == PendingAttack.Melee)
+        {
+            if (Physics.SphereCast(origin, 0.5f, dir, out RaycastHit hit, range))
+            {
+                Debug.Log($"PlayerControl: Fallback melee hit {hit.collider.gameObject.name}");
+                ApplyDamageToHit(hit.collider, combat.MeleeDamage, attackerChar);
+            }
+            else
+            {
+                Debug.Log("PlayerControl: Fallback melee found no hit");
+            }
+        }
+        else if (pendingAttack == PendingAttack.Ranged)
+        {
+            if (Physics.Raycast(origin, dir, out RaycastHit hit, 25f))
+            {
+                Debug.Log($"PlayerControl: Fallback ranged hit {hit.collider.gameObject.name}");
+                ApplyDamageToHit(hit.collider, combat.RangedDamage, attackerChar);
+            }
+            else
+            {
+                Debug.Log("PlayerControl: Fallback ranged found no hit");
+            }
+        }
+
+        pendingAttack = PendingAttack.None;
+    }
+
+    private void ApplyDamageToHit(Collider collider, int damage, Character attacker)
+    {
+        if (collider == null) return;
+        var damageable = collider.GetComponentInParent<IDamageable>();
+        if (damageable != null)
+        {
+            // IDamageable interface doesn't accept attacker info, so call directly
+            damageable.TakeDamage(damage);
+            return;
+        }
+        var hc = collider.GetComponentInParent<HeroicCombat>();
+        if (hc != null)
+        {
+            if (attacker != null)
+                hc.TakeDamage(damage, attacker);
+            else
+                hc.TakeDamage(damage);
         }
     }
 
@@ -223,10 +324,6 @@ public class PlayerControl : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Casts a ray forward to find a target with a HeroicCombat
-    /// component.  Returns the GameObject if found, otherwise null.
-    /// </summary>
     private GameObject GetAttackTarget()
     {
         Ray ray = new Ray(transform.position + Vector3.up, transform.forward);
