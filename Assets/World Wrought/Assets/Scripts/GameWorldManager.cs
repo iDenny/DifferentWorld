@@ -125,6 +125,20 @@ public class GameWorldManager : MonoBehaviour
                 }
             }
 
+            // Ensure target lock exists so NPCs can be claimed
+            var lockComp = npcObj.GetComponent<TargetLock>();
+            if (lockComp == null)
+            {
+                npcObj.AddComponent<TargetLock>();
+            }
+
+            // Add CompanionSystem to allow recruitment
+            var comp = npcObj.GetComponent<CompanionSystem>();
+            if (comp == null)
+            {
+                npcObj.AddComponent<CompanionSystem>();
+            }
+
             citizens.Add(character);
             if (Colony != null)
             {
@@ -161,12 +175,6 @@ public class GameWorldManager : MonoBehaviour
 
     private void Update()
     {
-        // As a basic example, periodically try to upgrade the settlement
-        // whenever resources are sufficient.  In a full implementation you
-        // might check conditions less often or tie this to UI events.
-        if (Colony != null)
-        {
-            Colony.TryUpgradeSettlement();
-        }
+        // No per-frame colony calls here; ColonySystem manages its own timers
     }
 }

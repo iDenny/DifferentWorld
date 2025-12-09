@@ -69,6 +69,16 @@ public class Character : MonoBehaviour
         EnsureNeedExists(NeedType.Recreation, 1f, 0.002f);
     }
 
+    private void Update()
+    {
+        // Update needs decay here so Needs.Update is called automatically
+        float dt = Time.deltaTime;
+        foreach (var need in Needs)
+        {
+            need.Update(dt);
+        }
+    }
+
     /// <summary>
     /// Adjusts the character's mood by a delta, taking their primary
     /// belief into account.  Belief modifiers can either boost or

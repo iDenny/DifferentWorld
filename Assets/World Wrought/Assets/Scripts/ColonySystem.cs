@@ -23,24 +23,25 @@ public class ColonySystem : MonoBehaviour
     [SerializeField]
     private List<Family> families = new List<Family>();
 
-    // Dictionaries are not serialized by Unity by default; keep internal.
     private Dictionary<string, int> resources = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
     [Tooltip("Settlement tier: 0=village, 1=town, 2=city...")]
     [SerializeField]
     private int settlementTier = 0;
 
-    // Read-only accessors
     public IReadOnlyList<Character> Citizens => citizens.AsReadOnly();
     public IReadOnlyList<Family> Families => families.AsReadOnly();
     public IReadOnlyDictionary<string, int> Resources => new ReadOnlyDictionary<string, int>(resources);
     public int SettlementTier => settlementTier;
 
-    // Events for other systems/UI
     public event Action<string, int> OnResourceChanged;
     public event Action<int> OnSettlementUpgraded;
     public event Action<Character> OnCitizenAdded;
     public event Action<Character> OnCitizenRemoved;
+
+    // Upgrade check timer
+    private float upgradeCheckInterval = 10f;
+    private float upgradeCheckTimer = 0f;
 
     /// <summary>
     /// Adds a character to the colony and optionally assigns them a family.
@@ -182,5 +183,16 @@ public class ColonySystem : MonoBehaviour
         Debug.Log($"Settlement upgraded to tier {settlementTier}!");
         OnSettlementUpgraded?.Invoke(settlementTier);
         return true;
+    }
+
+    private void Update()
+    {
+        // Run upgrade checks on a timer instead of every frame
+        upgradeCheckTimer += Time.deltaTime;
+        if (upgradeCheckTimer >= upgradeCheckInterval)
+        {
+            upgradeCheckTimer = 0f;
+            TryUpgradeSettlement();
+        }
     }
 }

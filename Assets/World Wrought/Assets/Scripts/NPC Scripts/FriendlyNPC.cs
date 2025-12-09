@@ -9,24 +9,35 @@ public class FriendlyNPC : MonoBehaviour
     private Character character;
     private float lastInteractTime = -999f;
     private Animator animator;
+    private Transform playerTransform;
 
     public void Setup(Character c)
     {
         character = c;
         animator = GetComponent<Animator>();
+        var playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null) playerTransform = playerObj.transform;
+    }
+
+    private void Start()
+    {
+        if (playerTransform == null)
+        {
+            var playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null) playerTransform = playerObj.transform;
+        }
     }
 
     private void Update()
     {
         if (character == null) return;
-        var player = GameObject.FindGameObjectWithTag("Player");
-        if (player == null) return;
+        if (playerTransform == null) return;
 
-        float dst = Vector3.Distance(transform.position, player.transform.position);
+        float dst = Vector3.Distance(transform.position, playerTransform.position);
         if (dst <= WaveDistance && Time.time - lastInteractTime >= InteractionCooldown)
         {
             // Face player and wave
-            Vector3 dir = (player.transform.position - transform.position);
+            Vector3 dir = (playerTransform.position - transform.position);
             dir.y = 0f;
             if (dir.sqrMagnitude > 0.001f)
             {

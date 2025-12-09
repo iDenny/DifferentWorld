@@ -20,10 +20,12 @@ public class PlayerInteraction : MonoBehaviour
     public KeyCode InteractKey = KeyCode.E;
 
     private Camera mainCam;
+    private PlayerInventory inventory;
 
     private void Awake()
     {
         mainCam = Camera.main;
+        inventory = GetComponent<PlayerInventory>();
     }
 
     private void Update()
@@ -36,27 +38,51 @@ public class PlayerInteraction : MonoBehaviour
 
     private void TryInteract()
     {
+        if (mainCam == null) mainCam = Camera.main;
         if (mainCam == null) return;
-        Ray ray = new Ray(mainCam.transform.position, mainCam.transform.forward);
-        if (Physics.Raycast(ray, out RaycastHit hit, InteractRange))
+
+        // Use center of screen ray so interactions work in third-person camera setups
+        Ray ray = mainCam.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f));
+
+        // Prefer a short sphere cast for forgiving hits
+        if (Physics.SphereCast(ray, 0.5f, out RaycastHit hit, InteractRange))
         {
-            // Only interact with objects that have a Character component
-            Character targetChar = hit.collider.GetComponent<Character>();
+            // Weapon pickup
+            var pickup = hit.collider.GetComponentInParent<WeaponPickup>();
+            if (pickup != null && inventory != null)
+            {
+                inventory.PickupWeapon(pickup.gameObject);
+                Debug.Log($"Picked up weapon: {pickup.gameObject.name}");
+                return;
+            }
+
+            // Character interaction
+            var targetChar = hit.collider.GetComponentInParent<Character>();
             if (targetChar == null) return;
 
-            // Check if the target has a CompanionSystem; if so, recruit
-            CompanionSystem comp = targetChar.GetComponent<CompanionSystem>();
+            var comp = targetChar.GetComponent<CompanionSystem>();
             if (comp != null && !comp.IsFollowing)
             {
+                // Recruit: mark as following and enable a follow behaviour
                 comp.IsFollowing = true;
-                // Optionally initialise loyalty or title here
-                Debug.Log($"{targetChar.CharacterName} has joined as a companion.");
+                var follow = targetChar.GetComponent<CompanionFollow>();
+                if (follow == null)
+                {
+                    follow = targetChar.gameObject.AddComponent<CompanionFollow>();
+                }
+                follow.SetLeader(gameObject);
+
+                // Optionally set the NPC to an ally layer if you have one (configure in Inspector)
+                Debug.Log($"{targetChar.CharacterName} has joined you.");
             }
             else
             {
-                // TODO: Implement dialogue or other interaction for non‑companions
                 Debug.Log($"Interacted with {targetChar.CharacterName}");
             }
+        }
+        else
+        {
+            Debug.Log("PlayerInteraction: no hit on interact");
         }
     }
 }

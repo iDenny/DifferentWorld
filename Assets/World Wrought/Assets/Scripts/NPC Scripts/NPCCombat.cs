@@ -12,6 +12,9 @@ public class NPCCombat : MonoBehaviour
     [Tooltip("Layer mask of valid targets this NPC will consider (e.g. Target or Player layers).")]
     public LayerMask TargetMask = ~0;
 
+    [Tooltip("Layer mask considered allies - NPC won't attack objects on these layers.")]
+    public LayerMask AllyMask = 0;
+
     [Tooltip("How close the NPC tries to get before switching to attack.")]
     public float ApproachDistance = 1.8f;
 
@@ -23,8 +26,12 @@ public class NPCCombat : MonoBehaviour
     [Tooltip("How long attack animation lasts (used to reset isAttacking flag).")]
     public float AttackAnimDuration = 0.6f;
 
+    [Tooltip("If true, NPCs will respect TargetLock components and avoid duplicating engagements.")]
+    public bool UseTargetLock = false;
+
     private HeroicCombat combat;
     private Character character;
+    private NemesisSystem nemesis;
     private float lastAttackTime;
 
     private GameObject currentTarget;
@@ -43,10 +50,18 @@ public class NPCCombat : MonoBehaviour
     {
         combat = GetComponent<HeroicCombat>();
         character = GetComponent<Character>();
+        nemesis = GetComponent<NemesisSystem>();
         navAgent = GetComponent<NavMeshAgent>();
         simpleMovement = GetComponent<SimpleNPCMovement>();
         animator = GetComponent<Animator>();
         weapons = GetComponentsInChildren<WeaponDamage>(true);
+
+        var aiController = GetComponent<AIController>();
+        if (aiController != null)
+        {
+            aiController.enabled = false;
+        }
+
         if (navAgent != null)
         {
             originalAgentSpeed = navAgent.speed;
@@ -61,6 +76,7 @@ public class NPCCombat : MonoBehaviour
         // Clean up any dead target
         if (currentTarget != null && !IsValidTarget(currentTarget))
         {
+            if (UseTargetLock) ReleaseTargetLock(currentTarget);
             StopEngaging();
         }
 
@@ -72,32 +88,58 @@ public class NPCCombat : MonoBehaviour
 
         // Look for targets within detection radius (use a larger radius than attack range)
         Collider[] hits = Physics.OverlapSphere(transform.position, Mathf.Max(AttackRange, DisengageDistance), TargetMask);
+
+        // Build candidate list and choose by nemesis hostility or distance
+        GameObject chosen = null;
+        float bestScore = float.MinValue;
         foreach (var hit in hits)
         {
-            var otherChar = hit.GetComponent<Character>();
+            // skip allies by layer
+            if ((AllyMask.value & (1 << hit.gameObject.layer)) != 0) continue;
+
+            var otherChar = hit.GetComponentInParent<Character>();
             if (otherChar != null && otherChar != character)
             {
-                var targetCombat = hit.GetComponent<HeroicCombat>();
+                var targetCombat = hit.GetComponentInParent<HeroicCombat>();
                 if (targetCombat == null || targetCombat.Health <= 0) continue;
 
-                // Start engaging
-                StartEngaging(hit.gameObject);
-                // Try immediate attack if close
-                if (Vector3.Distance(transform.position, hit.transform.position) <= AttackRange && Time.time - lastAttackTime >= AttackCooldown)
+                // optional TargetLock
+                if (UseTargetLock)
                 {
-                    // If this NPC has weapon colliders, let them apply damage; otherwise use combat.MeleeAttack
-                    if (weapons != null && weapons.Length > 0)
-                    {
-                        foreach (var w in weapons) w.PerformHitCheck();
-                    }
-                    else
-                    {
-                        combat.MeleeAttack(hit.gameObject);
-                    }
-                    TriggerAttackAnimation();
-                    lastAttackTime = Time.time;
+                    var lockComp = hit.GetComponentInParent<TargetLock>();
+                    if (lockComp != null && lockComp.IsClaimed && lockComp.Engager != gameObject)
+                        continue;
                 }
-                break;
+
+                // Score by nemesis hostility (higher = more desire to attack), fallback to inverse distance
+                float hostility = nemesis != null ? nemesis.GetHostility(otherChar) : 0f;
+                float distance = Vector3.Distance(transform.position, hit.transform.position);
+                float score = hostility * 100f - distance;
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    chosen = hit.gameObject;
+                }
+            }
+        }
+
+        if (chosen != null)
+        {
+            StartEngaging(chosen);
+            // Try immediate attack if close
+            if (Vector3.Distance(transform.position, chosen.transform.position) <= AttackRange && Time.time - lastAttackTime >= AttackCooldown)
+            {
+                if (weapons != null && weapons.Length > 0)
+                {
+                    foreach (var w in weapons) w.PerformHitCheck();
+                }
+                else
+                {
+                    combat.MeleeAttack(chosen);
+                }
+                TriggerAttackAnimation();
+                lastAttackTime = Time.time;
             }
         }
     }
@@ -108,6 +150,7 @@ public class NPCCombat : MonoBehaviour
         float dst = Vector3.Distance(transform.position, currentTarget.transform.position);
         if (dst > DisengageDistance)
         {
+            if (UseTargetLock) ReleaseTargetLock(currentTarget);
             StopEngaging();
             return;
         }
@@ -137,7 +180,10 @@ public class NPCCombat : MonoBehaviour
             }
             else
             {
+                // Stop movement cleanly and hold position while attacking
                 navAgent.isStopped = true;
+                navAgent.ResetPath();
+
                 if (Time.time - lastAttackTime >= AttackCooldown)
                 {
                     if (weapons != null && weapons.Length > 0)
@@ -161,6 +207,12 @@ public class NPCCombat : MonoBehaviour
                 {
                     animator.SetFloat("Speed", speed, 0.1f, Time.deltaTime);
                 }
+                // normalized speed for blend trees
+                if (AnimatorHasParameter("SpeedNormalized"))
+                {
+                    float norm = RunSpeed > 0 ? Mathf.Clamp01(speed / RunSpeed) : 0f;
+                    animator.SetFloat("SpeedNormalized", norm, 0.1f, Time.deltaTime);
+                }
             }
         }
     }
@@ -178,12 +230,21 @@ public class NPCCombat : MonoBehaviour
     private bool IsValidTarget(GameObject t)
     {
         if (t == null) return false;
-        var hc = t.GetComponent<HeroicCombat>();
+        var hc = t.GetComponentInParent<HeroicCombat>();
         return hc != null && hc.Health > 0;
     }
 
     private void StartEngaging(GameObject target)
     {
+        if (UseTargetLock)
+        {
+            var lockComp = target.GetComponentInParent<TargetLock>();
+            if (lockComp != null && !lockComp.IsClaimed)
+            {
+                lockComp.Claim(gameObject);
+            }
+        }
+
         currentTarget = target;
         if (simpleMovement != null) simpleMovement.enabled = false;
         if (navAgent != null)
@@ -200,12 +261,23 @@ public class NPCCombat : MonoBehaviour
         if (navAgent != null)
         {
             navAgent.isStopped = false;
+            navAgent.ResetPath();
             navAgent.speed = WalkSpeed;
         }
         if (simpleMovement != null)
         {
             simpleMovement.enabled = true;
             simpleMovement.PickNewDestination();
+        }
+    }
+
+    private void ReleaseTargetLock(GameObject target)
+    {
+        if (target == null) return;
+        var lockComp = target.GetComponentInParent<TargetLock>();
+        if (lockComp != null)
+        {
+            lockComp.Release(gameObject);
         }
     }
 

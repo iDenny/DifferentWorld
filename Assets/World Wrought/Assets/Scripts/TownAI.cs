@@ -14,21 +14,28 @@ public class TownAI : MonoBehaviour
     public int WoodStock = 0;
     public int StoneStock = 0;
 
+    public float ProductionInterval = 1f; // seconds
+    private float productionTimer = 0f;
+
     void Update()
     {
-        // Basic resource production: each villager gathers a resource per second
-        foreach (Character villager in Villagers)
+        productionTimer += Time.deltaTime;
+        if (productionTimer >= ProductionInterval)
         {
-            // Naive example: alternate between food and wood
-            if (Time.frameCount % 2 == 0)
+            productionTimer = 0f;
+            foreach (Character villager in Villagers)
             {
-                FoodStock++;
-                villager.FulfillNeed(NeedType.Hunger, 0.1f);
-            }
-            else
-            {
-                WoodStock++;
-                villager.FulfillNeed(NeedType.Rest, 0.05f);
+                // Alternate between food and wood each tick
+                if (Random.value > 0.5f)
+                {
+                    FoodStock++;
+                    villager.FulfillNeed(NeedType.Hunger, 0.1f);
+                }
+                else
+                {
+                    WoodStock++;
+                    villager.FulfillNeed(NeedType.Rest, 0.05f);
+                }
             }
         }
     }

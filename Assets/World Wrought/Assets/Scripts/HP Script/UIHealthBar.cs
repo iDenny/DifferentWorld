@@ -13,13 +13,22 @@ public class UIHealthBar : MonoBehaviour
     // Update is called once per frame
     void LateUpdate()
     {
-        Vector3 directionToHealthBar = (transform.position - Camera.main.transform.position).normalized;
-        float angle = Vector3.Angle(Camera.main.transform.forward, directionToHealthBar);
+        if (Camera.main == null || target == null)
+            return;
 
-        bool isBehind = angle > 10f; // The health bar is behind if the angle is greater than 90 degrees
-        foregroundImage.enabled = isBehind;
-        backgroundImage.enabled = isBehind;
-        transform.position = Camera.main.WorldToScreenPoint(target.position + offset);
+        // Use viewport test rather than raw angle so we accurately determine visibility
+        Vector3 screenPos = Camera.main.WorldToViewportPoint(target.position + offset);
+        bool inFront = screenPos.z > 0f;
+        bool onScreen = screenPos.x >= 0f && screenPos.x <= 1f && screenPos.y >= 0f && screenPos.y <= 1f;
+
+        bool visible = inFront && onScreen;
+
+        foregroundImage.enabled = visible;
+        backgroundImage.enabled = visible;
+
+        // Position the UI element using screen space point so anchoring remains correct
+        Vector3 screenPoint = Camera.main.WorldToScreenPoint(target.position + offset);
+        transform.position = screenPoint;
     }
 
     public void SetHealthBarPercentage(float percentage)

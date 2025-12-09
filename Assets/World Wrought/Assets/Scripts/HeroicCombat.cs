@@ -105,6 +105,8 @@ public class HeroicCombat : MonoBehaviour, IDamageable
         if (source != null)
             lastAttacker = source;
 
+        Debug.Log($"HeroicCombat: {gameObject.name} taking {amount} damage from {(source!=null?source.CharacterName:"unknown")}");
+
         Health -= amount;
         UpdateHealthUI();
 
